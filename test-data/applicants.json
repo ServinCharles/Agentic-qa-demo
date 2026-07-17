@@ -1,0 +1,18 @@
+{
+  "_note": "Synthetic data only. Real-looking sort codes / account / card numbers are blocked by the block-secrets.sh hook.",
+  "standardApplicant": {
+    "annualIncome": 45000,
+    "monthlyCommitments": 0,
+    "requestedLoan": 150000
+  },
+  "referredApplicant": {
+    "annualIncome": 30000,
+    "monthlyCommitments": 0,
+    "requestedLoan": 200000
+  },
+  "declinedApplicant": {
+    "annualIncome": 45000,
+    "monthlyCommitments": 1800,
+    "requestedLoan": 150000
+  }
+}
