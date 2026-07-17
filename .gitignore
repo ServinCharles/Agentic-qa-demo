@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+
+# Test results & reports
+allure-results/
+allure-report/
+test-report.html
+logs/
+
+# WebdriverIO artefacts
+screenshots/
+errorShots/
+wdio-logs/
+
+# Backup files
+*.bak
+*.bak2
+
+# OS artefacts
+.DS_Store
+Thumbs.db
+
+# Build / coverage output
+dist/
+coverage/
+

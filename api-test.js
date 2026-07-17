@@ -278,7 +278,7 @@ class APITester {
       }
     );
 
-    this.displayResults();
+    return this.displayResults();
   }
 
   displayResults() {

@@ -1,16 +1,63 @@
-const { spawn } = require('child_process');
+const { spawn, exec } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const http = require('http');
+
+const MOCK_SERVER_PORT = 3000;
+let mockServerProcess = null;
+
+function isMockServerRunning() {
+  return new Promise((resolve) => {
+    const req = http.get(`http://localhost:${MOCK_SERVER_PORT}`, () => {
+      resolve(true);
+    });
+    req.on('error', () => resolve(false));
+    req.setTimeout(1000, () => { req.destroy(); resolve(false); });
+  });
+}
+
+function startMockServer() {
+  return new Promise((resolve, reject) => {
+    console.log('🔌 Starting mock server...');
+    mockServerProcess = spawn('node', ['mock-server.js'], {
+      cwd: process.cwd(),
+      stdio: ['ignore', 'pipe', 'pipe']
+    });
+
+    mockServerProcess.stdout.on('data', (data) => {
+      const msg = data.toString();
+      if (msg.includes('Mock server running')) {
+        console.log(`✅ Mock server started at http://localhost:${MOCK_SERVER_PORT}\n`);
+        resolve();
+      }
+    });
+
+    mockServerProcess.stderr.on('data', (data) => {
+      reject(new Error(`Mock server error: ${data.toString()}`));
+    });
+
+    mockServerProcess.on('error', reject);
+  });
+}
+
+function stopMockServer() {
+  if (mockServerProcess) {
+    mockServerProcess.kill();
+    mockServerProcess = null;
+    console.log('\n🔌 Mock server stopped.');
+  }
+}
 
 const tests = [
   { name: 'Functional Tests (Smoke)', cmd: 'npm', args: ['run', 'test:smoke'], type: 'functional' },
+  { name: 'API Tests', cmd: 'npm', args: ['run', 'test:api'], type: 'api' },
   { name: 'Performance Tests', cmd: 'npm', args: ['run', 'test:perf'], type: 'performance' },
   { name: 'Stress Tests', cmd: 'npm', args: ['run', 'test:stress'], type: 'stress' },
   { name: 'Accessibility Tests', cmd: 'npm', args: ['run', 'test:a11y'], type: 'accessibility' }
 ];
 
 const results = {
-  summary: { totalTests: 4, passed: 0, failed: 0, startTime: new Date() },
+  summary: { totalTests: 5, passed: 0, failed: 0, startTime: new Date() },
   tests: []
 };
 
@@ -320,8 +367,16 @@ function generateHTMLReport(results) {
 }
 
 // Main execution
-runAllTests()
-  .then(results => {
+(async () => {
+  const alreadyRunning = await isMockServerRunning();
+  if (!alreadyRunning) {
+    await startMockServer();
+  } else {
+    console.log(`✅ Mock server already running at http://localhost:${MOCK_SERVER_PORT}\n`);
+  }
+
+  try {
+    const results = await runAllTests();
     const html = generateHTMLReport(results);
     const reportPath = path.join(process.cwd(), 'test-report.html');
     fs.writeFileSync(reportPath, html);
@@ -341,11 +396,13 @@ runAllTests()
     console.log(`\n🌐 Opening report in browser...\n`);
     
     // Open in browser (macOS)
-    require('child_process').exec(`open "${reportPath}"`);
-    
+    exec(`open "${reportPath}"`);
+
+    stopMockServer();
     process.exit(results.summary.failed > 0 ? 1 : 0);
-  })
-  .catch(error => {
+  } catch (error) {
     console.error('❌ Error running tests:', error);
+    stopMockServer();
     process.exit(1);
-  });
+  }
+})();

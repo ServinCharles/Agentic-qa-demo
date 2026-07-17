@@ -14,6 +14,7 @@
     "test:bstack": "wdio run wdio.browserstack.conf.js",
     "test:compat": "wdio run wdio.compatibility.conf.js",
     "test:compat:full": "wdio run wdio.compatibility.conf.js --cucumberOpts.tags ''",
+    "test:all": "node run-all-tests.js",
     "lint": "eslint features/ pageobjects/",
     "wdio": "wdio run ./wdio.conf.js",
     "report:view": "node allure-report-viewer.js",
