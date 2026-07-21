@@ -92,10 +92,14 @@ pipeline {
             
             // Publish Allure report
             publishHTML([
-                reportDir: 'allure-report',
-                reportFiles: 'index.html',
-                reportName: 'Allure Report'
+                 allowMissing: true,
+                 alwaysLinkToLastBuild: true,
+                 keepAll: true,
+                 reportDir: 'allure-report',
+                 reportFiles: 'index.html',
+                 reportName: 'Allure Report'
             ])
+            
         }
 
         success {
