@@ -256,7 +256,8 @@ agentic-qa-demo/
 │   ├── skills/                        # Reusable workflows
 │   │   ├── write-feature.md
 │   │   ├── write-page-object.md
-│   │   └── write-step-definitions.md
+│   │   ├── write-step-definitions.md
+│   │   └── generate-from-jira-ticket.md
 │   ├── hooks/                         # Automated checks
 │   │   ├── pre-commit.md
 │   │   └── post-test.md
@@ -280,6 +281,9 @@ agentic-qa-demo/
 | `BASE_URL` | `http://localhost:3000` | Application under test |
 | `BROWSERSTACK_USERNAME` | — | BrowserStack account |
 | `BROWSERSTACK_ACCESS_KEY` | — | BrowserStack API key |
+| `JIRA_BASE_URL` | — | Jira site URL for optional MCP ticket fetch |
+| `JIRA_EMAIL` | — | Jira user email for optional MCP ticket fetch |
+| `JIRA_API_TOKEN` | — | Jira API token for optional MCP ticket fetch |
 
 ```bash
 # Staging
@@ -288,6 +292,30 @@ BASE_URL=https://staging.mortgages.bank npm run test:smoke
 # Production
 BASE_URL=https://mortgages.bank npm run test:regression
 ```
+
+### Optional MCP Layer (Ticket -> Scenarios)
+
+Use this only when you want to generate scenarios from a live Jira ticket.
+
+1. Copy `.vscode/mcp.json.example` to `.vscode/mcp.json` and replace command/args with your Jira MCP server settings.
+2. Add Jira credentials in your local environment (see `.env.example`).
+3. Ask the agent: `Use ticket ABC-123 and create BDD scenarios`.
+
+If MCP is unavailable, the agent falls back to the normal manual requirement flow.
+
+### Scaffolded Generator Command (Mock Payload)
+
+Generate a draft feature from a mock Jira payload:
+
+```bash
+npm run generate:ticket -- ABC-123 --mock
+```
+
+Inputs and outputs:
+- Mock payload input: `test-data/mock-jira/ABC-123.json`
+- Generated feature output: `generated-features/abc-123.feature`
+
+This keeps generated drafts outside `features/` so they do not affect normal test execution until reviewed and promoted.
 
 ### Mock Server Endpoints
 

@@ -5,6 +5,7 @@ node_modules/
 .env
 .env.*
 !.env.example
+.vscode/mcp.json
 
 # Test results & reports
 allure-results/

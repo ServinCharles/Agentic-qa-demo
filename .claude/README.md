@@ -9,7 +9,8 @@ This directory contains configuration files for GitHub Copilot (Claude) to exten
 ├── skills/                    # Reusable workflows for common tasks
 │   ├── write-feature.md       # Create BDD feature files
 │   ├── write-page-object.md   # Create page objects
-│   └── write-step-definitions.md  # Create step definitions
+│   ├── write-step-definitions.md  # Create step definitions
+│   └── generate-from-jira-ticket.md # Optional MCP ticket-to-scenario flow
 │
 ├── hooks/                     # Automated checks at key points
 │   ├── pre-commit.md          # Security & code quality gate
@@ -43,6 +44,14 @@ Implement Cucumber step definitions that map Gherkin to page objects.
 - Assertions use `expect()` from `@wdio/globals`
 - Test data comes from files, never hardcoded
 - No raw selectors inside step definitions
+
+### [Generate From Jira Ticket](skills/generate-from-jira-ticket.md)
+Optional MCP-based workflow to generate BDD scenarios from a Jira ticket.
+- Input: ticket ID (example: `ABC-123`)
+- Fetches story details from Jira via MCP tool
+- Generates Gherkin scenarios with correct tags
+- Requires user confirmation before writing files
+- Falls back to manual requirement flow if MCP is unavailable
 
 ## Hooks
 
@@ -116,6 +125,11 @@ Invoke agents by asking Copilot directly:
 "Review my changes — what tests should I add?"
 ```
 
+Optional MCP invocation example:
+```
+"Use ticket ABC-123 and create BDD scenarios"
+```
+
 ## Rules for Agents
 
 All agents follow the principles from `CLAUDE.md`:
@@ -136,3 +150,5 @@ These files are read-only configuration. The agent (GitHub Copilot / Claude) use
 - Provide context-aware suggestions
 
 No manual editing needed unless patterns or conventions change.
+
+For optional MCP setup, see `.vscode/mcp.json.example`.

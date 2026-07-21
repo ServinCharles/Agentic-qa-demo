@@ -1,0 +1,58 @@
+{
+  "ticketId": "ABC-123",
+  "title": "Pre-populate income from profile for returning applicant",
+  "description": "As a returning mortgage applicant, I want my previously verified annual income to pre-populate in the DIP journey so that I can complete the form faster and with fewer errors.",
+  "persona": "returning mortgage applicant",
+  "goal": "pre-populate previously verified annual income in DIP",
+  "benefit": "complete the journey faster with fewer data-entry mistakes",
+  "labels": ["dip", "ux", "regression"],
+  "acceptanceCriteria": [
+    "Given a returning applicant with a verified income record, when the DIP journey starts, then annual income is pre-populated.",
+    "Given no verified income record exists, when the journey starts, then annual income remains blank and editable.",
+    "Given a pre-populated value is present, when the applicant edits it, then the updated value is used for the decision request."
+  ],
+  "scenarios": [
+    {
+      "title": "Pre-populate verified annual income for a returning applicant",
+      "given": [
+        "a returning applicant has a previously verified annual income of 52000",
+        "a new Decision-in-Principle journey has started"
+      ],
+      "when": [
+        "the applicant opens the affordability form"
+      ],
+      "then": [
+        "the annual income field shows 52000",
+        "the applicant can continue without re-entering income"
+      ]
+    },
+    {
+      "title": "Leave annual income blank when no verified record exists",
+      "given": [
+        "a returning applicant does not have a verified annual income record",
+        "a new Decision-in-Principle journey has started"
+      ],
+      "when": [
+        "the applicant opens the affordability form"
+      ],
+      "then": [
+        "the annual income field is blank",
+        "the annual income field is editable"
+      ]
+    },
+    {
+      "title": "Use applicant-edited annual income for the decision request",
+      "given": [
+        "a returning applicant has a pre-populated annual income of 52000",
+        "a new Decision-in-Principle journey has started"
+      ],
+      "when": [
+        "the applicant changes annual income to 60000",
+        "they request a decision for a 180000 loan"
+      ],
+      "then": [
+        "the decision request uses annual income 60000"
+      ]
+    }
+  ]
+}

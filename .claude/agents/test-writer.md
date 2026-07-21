@@ -17,6 +17,11 @@ User says:
 
 ## Workflow
 
+0. **Optional MCP ticket mode** (opt-in):
+   - If the user provides a Jira ticket ID (example: ABC-123), fetch story title, description, and acceptance criteria from a configured MCP Jira tool.
+   - If MCP/Jira is unavailable, continue with the existing manual requirement flow.
+   - Ask for confirmation before writing or updating files from generated scenarios.
+
 1. **Understand the requirement** — Ask clarifying questions if needed:
    - What page/component is being tested?
    - What is the happy path vs edge cases?
@@ -65,3 +70,5 @@ User says:
 - Never create a feature without a corresponding step definition
 - Tag new scenarios appropriately
 - Follow naming conventions strictly
+- MCP mode must stay optional and must not block default behavior
+- Never store Jira credentials in repo files; use environment variables only

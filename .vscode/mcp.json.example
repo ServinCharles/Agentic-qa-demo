@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "jira": {
+      "command": "REPLACE_WITH_JIRA_MCP_SERVER_COMMAND",
+      "args": [
+        "REPLACE_WITH_ARG_1"
+      ],
+      "env": {
+        "JIRA_BASE_URL": "${env:JIRA_BASE_URL}",
+        "JIRA_EMAIL": "${env:JIRA_EMAIL}",
+        "JIRA_API_TOKEN": "${env:JIRA_API_TOKEN}"
+      }
+    }
+  }
+}

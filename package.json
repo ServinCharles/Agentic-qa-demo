@@ -19,7 +19,8 @@
     "wdio": "wdio run ./wdio.conf.js",
     "report:view": "node allure-report-viewer.js",
     "test:smoke:report": "npm run test:smoke && npm run report:view",
-    "test:regression:report": "npm run test:regression && npm run report:view"
+    "test:regression:report": "npm run test:regression && npm run report:view",
+    "generate:ticket": "node scripts/generate-ticket-gherkin.js"
   },
   "devDependencies": {
     "@axe-core/webdriverio": "^4.8.12",
