@@ -45,6 +45,19 @@ pipeline {
             }
         }
 
+        stage('Start Mock Server') {
+            when {
+                expression { params.BROWSER != 'browserstack' }
+            }
+            steps {
+                echo '🚀 Starting mock server on port 3000...'
+                sh 'mkdir -p logs'
+                sh 'nohup node mock-server.js > logs/mock-server.log 2>&1 &'
+                sh 'sleep 3'
+                sh 'curl -s http://localhost:3000 || curl -s http://localhost:3000/health || echo "Mock server started"'
+            }
+        }
+
         stage('Run Smoke Tests') {
             when {
                 expression { params.TEST_SUITE == 'smoke' || params.TEST_SUITE == 'all' }
@@ -119,6 +132,7 @@ pipeline {
 
         cleanup {
             echo '🧹 Cleaning up...'
+            sh 'pkill -f "node mock-server.js" || true'
             deleteDir()
         }
     }
