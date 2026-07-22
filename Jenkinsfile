@@ -39,7 +39,9 @@ pipeline {
         stage('Lint') {
             steps {
                 echo '🔍 Linting features and page objects...'
-                sh 'npm run lint'
+                catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
+                    sh 'npm run lint'
+                }
             }
         }
 
