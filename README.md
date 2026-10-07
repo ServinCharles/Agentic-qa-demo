@@ -19,6 +19,8 @@ A comprehensive test automation suite for the **Mortgage Decision-in-Principle (
 3. [Quick Start](#quick-start)
 4. [Installation](#installation)
 5. [Running Tests](#running-tests)
+   - [Docker](#docker)
+   - [Jenkins](#jenkins)
 6. [Test Types](#test-types)
 7. [Project Structure](#project-structure)
 8. [Configuration](#configuration)
@@ -163,6 +165,34 @@ npm run test:bstack:regression  # Regression on 3 browsers
 npm run test:compat             # 10-browser compatibility matrix
 npm run test:compat:full        # Full suite on all 10 browsers
 ```
+
+### Docker
+Runs the suite in a container with headless Chromium, so no local Chrome is needed.
+```bash
+brew install docker colima          # macOS, one-off
+colima start --cpu 2 --memory 4     # after a restart: brew services start colima
+
+docker build -t agentic-qa-demo .
+docker run --rm -v "$PWD":/app -v /app/node_modules agentic-qa-demo \
+  sh -c "npm ci && (node mock-server.js &) && sleep 3 && npm run test:smoke"
+```
+The [Dockerfile](Dockerfile) sets `CHROME_BIN` and `CHROMEDRIVER_PATH`; [wdio.conf.js](wdio.conf.js) then switches Chrome to headless (`--no-sandbox`). Without them, local runs are unchanged.
+
+### Jenkins
+The [Jenkinsfile](Jenkinsfile) pipeline: install, lint, start mock server, smoke, regression, then archive Allure/JUnit results.
+
+- **Local Jenkins:** `brew install jenkins-lts && brew services start jenkins-lts`, then open http://localhost:8080.
+- **Job:** a Pipeline job using "Pipeline script from SCM" (this repo, branch `main`, script path `Jenkinsfile`).
+- **Requirements:** plugins Pipeline, NodeJS, Credentials Binding, JUnit, HTML Publisher and Allure; a NodeJS tool named `NodeJS`; credentials `browserstack-user` and `browserstack-key`.
+- **Build with Parameters:**
+
+| Parameter | Values | Purpose |
+|-----------|--------|---------|
+| `TEST_SUITE` | `smoke`, `regression`, `all` | Which pack to run |
+| `BROWSER` | `local`, `browserstack` | Local Chrome or BrowserStack |
+| `USE_DOCKER` | `false` (default), `true` | Build the Dockerfile image and run tests in a container |
+
+`USE_DOCKER` needs Docker running on the Jenkins machine (on macOS: Colima, then restart Jenkins so `docker` is on its `PATH`).
 
 ---
 
@@ -386,6 +416,12 @@ export BASE_URL=https://staging.mortgages.bank
 lsof -i :5555 | grep node | awk '{print $2}' | xargs kill -9
 npm run report:view
 ```
+
+### Jenkins login problems
+Use the password in `~/.jenkins/secrets/initialAdminPassword` (user `admin`). If it was changed, temporarily set `<useSecurity>false</useSecurity>` in `~/.jenkins/config.xml` (back it up first), restart Jenkins, reset the user password, then restore the backup. Don't leave security disabled.
+
+### Jenkins: `docker: command not found`
+Install Docker/Colima, start Colima, and restart Jenkins (`brew services restart jenkins-lts`).
 
 ### Dependencies won't install
 ```bash

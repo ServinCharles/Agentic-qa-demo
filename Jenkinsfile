@@ -125,7 +125,10 @@ pipeline {
             junit testResults: '**/reports/**/*.xml', allowEmptyResults: true
 
             // Archive Allure results
-            archiveArtifacts artifacts: 'allure-results/**'
+            archiveArtifacts artifacts: 'allure-results/**', allowEmptyArchive: true
+
+            // Generate the HTML report that publishHTML serves
+            sh 'npx allure generate allure-results --clean -o allure-report || true'
             
             // Publish Allure report
             publishHTML([
