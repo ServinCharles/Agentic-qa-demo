@@ -30,3 +30,5 @@ Thumbs.db
 dist/
 coverage/
 
+browserstack.err
+local.log
