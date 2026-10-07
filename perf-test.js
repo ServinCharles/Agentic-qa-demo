@@ -12,9 +12,7 @@ async function runPerformanceTest() {
   
   const browser = await remote({
     logLevel: 'error',
-    capabilities: {
-      browserName: 'chrome'
-    }
+    capabilities: require('./chrome-capabilities')
   });
 
   try {

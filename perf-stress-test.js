@@ -16,9 +16,7 @@ async function stressTest(iterations = 5) {
     
     const browser = await remote({
       logLevel: 'error',
-      capabilities: {
-        browserName: 'chrome'
-      }
+      capabilities: require('./chrome-capabilities')
     });
     
     try {

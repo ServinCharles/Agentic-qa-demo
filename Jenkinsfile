@@ -54,7 +54,7 @@ pipeline {
 
         stage('Start Mock Server') {
             when {
-                expression { params.BROWSER != 'browserstack' && !params.USE_DOCKER }
+                expression { !params.USE_DOCKER }
             }
             steps {
                 echo '🚀 Starting mock server on port 3000...'
@@ -77,7 +77,7 @@ pipeline {
                     } else {
                         sh '''
                             if [ "${BROWSER}" = "browserstack" ]; then
-                                npm run test:smoke -- --baseUrl https://browserstack.com
+                                BROWSERSTACK_USERNAME="${BROWSERSTACK_USER}" BROWSERSTACK_ACCESS_KEY="${BROWSERSTACK_KEY}" npm run test:bstack:smoke
                             else
                                 npm run test:smoke
                             fi
@@ -99,7 +99,7 @@ pipeline {
                     } else {
                         sh '''
                             if [ "${BROWSER}" = "browserstack" ]; then
-                                npm run test:regression -- --baseUrl https://browserstack.com
+                                BROWSERSTACK_USERNAME="${BROWSERSTACK_USER}" BROWSERSTACK_ACCESS_KEY="${BROWSERSTACK_KEY}" npm run test:bstack:regression
                             else
                                 npm run test:regression
                             fi
