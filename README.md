@@ -180,7 +180,7 @@ docker run --rm -v "$PWD":/app -v /app/node_modules agentic-qa-demo \
 The [Dockerfile](Dockerfile) sets `CHROME_BIN` and `CHROMEDRIVER_PATH`; [wdio.conf.js](wdio.conf.js) then switches Chrome to headless (`--no-sandbox`). Without them, local runs are unchanged.
 
 ### Jenkins
-The [Jenkinsfile](Jenkinsfile) pipeline: install, lint, start mock server, smoke, regression, then archive Allure/JUnit results.
+The [Jenkinsfile](Jenkinsfile) pipeline: install, lint, start mock server, smoke, regression, then archive Allure/JUnit results. On macOS with Docker Desktop, the pipeline includes Docker Desktop's helper directory in `PATH` so Docker registry authentication works from Jenkins.
 
 - **Local Jenkins:** `brew install jenkins-lts && brew services start jenkins-lts`, then open http://localhost:8080.
 - **Job:** a Pipeline job using "Pipeline script from SCM" (this repo, branch `main`, script path `Jenkinsfile`).
