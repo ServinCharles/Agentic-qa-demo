@@ -130,6 +130,10 @@ npm run lint
 
 ## 🧪 Running Tests
 
+### GitHub Actions
+
+The [Smoke tests workflow](.github/workflows/smoke-tests.yml) runs the smoke suite on every push and after a pull request is merged into `main`. It installs Node.js dependencies, starts the local mock server, runs Chrome headlessly, and uploads Allure results and mock-server logs as workflow artifacts.
+
 ### Run Everything (Recommended)
 ```bash
 node run-all-tests.js
