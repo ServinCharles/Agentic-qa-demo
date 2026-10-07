@@ -1,0 +1,4 @@
+"DESCRIPTION","DURATION IN MS","NAME","PARENT SUITE","START TIME","STATUS","STOP TIME","SUB SUITE","SUITE","TEST CLASS","TEST METHOD"
+"","165","Refer an applicant whose loan exceeds the income multiple cap","DIP affordability assessment","2026-10-07","passed","2026-10-07","","","",""
+"","234","Accept an applicant within standard affordability limits","DIP affordability assessment","2026-10-07","passed","2026-10-07","","","",""
+"","252","Decline an applicant with excessive existing commitments","DIP affordability assessment","2026-10-07","passed","2026-10-07","","","",""
