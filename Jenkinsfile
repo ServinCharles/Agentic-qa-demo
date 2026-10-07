@@ -23,7 +23,7 @@ pipeline {
     }
 
     environment {
-        PATH = "/opt/homebrew/bin:/usr/local/bin:${PATH}"
+        PATH = "/Applications/Docker.app/Contents/Resources/bin:/opt/homebrew/bin:/usr/local/bin:${PATH}"
 
         // BrowserStack credentials from Jenkins credential store
         BROWSERSTACK_USER = credentials('browserstack-user')
@@ -162,6 +162,11 @@ pipeline {
 
 // Builds the test image and runs a command in it, with the mock server started inside the container
 def runInDocker(String testCommand) {
-    sh 'mkdir -p logs && docker build -t agentic-qa-demo:${BUILD_NUMBER} .'
+    sh '''
+        export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"
+        command -v docker-credential-desktop
+        mkdir -p logs
+        docker build -t agentic-qa-demo:${BUILD_NUMBER} .
+    '''
     sh "docker run --rm -v \"\${WORKSPACE}\":/app -v /app/node_modules agentic-qa-demo:\${BUILD_NUMBER} sh -c 'npm ci && (node mock-server.js > logs/mock-server.log 2>&1 &) && sleep 3 && ${testCommand}'"
 }
