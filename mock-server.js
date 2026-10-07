@@ -83,6 +83,7 @@ const server = http.createServer((req, res) => {
           </form>
           <div id="decision-badge" data-testid="decision-outcome" style="display:none;">Accepted</div>
           <div id="max-borrowing" data-testid="max-borrowing-amount" style="display:none;">£250,000</div>
+          <div id="referral-guidance" data-testid="referral-guidance" style="display:none;"></div>
           <script>
             document.getElementById('get-decision').addEventListener('click', async function() {
               const income = parseFloat(document.getElementById('applicant-annual-income').value);
@@ -106,6 +107,13 @@ const server = http.createServer((req, res) => {
                   document.getElementById('decision-badge').style.display = 'block';
                   document.getElementById('max-borrowing').textContent = '£' + result.borrowingPower.toLocaleString();
                   document.getElementById('max-borrowing').style.display = 'block';
+                  const guidance = document.getElementById('referral-guidance');
+                  if (result.decision === 'Referred') {
+                    guidance.textContent = result.reason;
+                    guidance.style.display = 'block';
+                  } else {
+                    guidance.style.display = 'none';
+                  }
                 }
               } catch (e) {
                 console.error('Error calling API:', e);
