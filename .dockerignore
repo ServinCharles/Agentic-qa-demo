@@ -1,0 +1,8 @@
+node_modules/
+allure-results/
+allure-report/
+logs/
+.git/
+.env
+*.bak
+*.bak2

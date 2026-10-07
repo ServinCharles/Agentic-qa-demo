@@ -15,9 +15,16 @@ pipeline {
             choices: ['local', 'browserstack'],
             description: 'Browser environment'
         )
+        booleanParam(
+            name: 'USE_DOCKER',
+            defaultValue: false,
+            description: 'Run the tests inside the Docker image built from ./Dockerfile'
+        )
     }
 
     environment {
+        PATH = "/opt/homebrew/bin:/usr/local/bin:${PATH}"
+
         // BrowserStack credentials from Jenkins credential store
         BROWSERSTACK_USER = credentials('browserstack-user')
         BROWSERSTACK_KEY = credentials('browserstack-key')
@@ -47,7 +54,7 @@ pipeline {
 
         stage('Start Mock Server') {
             when {
-                expression { params.BROWSER != 'browserstack' }
+                expression { params.BROWSER != 'browserstack' && !params.USE_DOCKER }
             }
             steps {
                 echo '🚀 Starting mock server on port 3000...'
@@ -64,13 +71,19 @@ pipeline {
             }
             steps {
                 echo '🔥 Running smoke test pack...'
-                sh '''
-                    if [ "${BROWSER}" = "browserstack" ]; then
-                        npm run test:smoke -- --baseUrl https://browserstack.com
-                    else
-                        npm run test:smoke
-                    fi
-                '''
+                script {
+                    if (params.USE_DOCKER) {
+                        runInDocker('npm run test:smoke')
+                    } else {
+                        sh '''
+                            if [ "${BROWSER}" = "browserstack" ]; then
+                                npm run test:smoke -- --baseUrl https://browserstack.com
+                            else
+                                npm run test:smoke
+                            fi
+                        '''
+                    }
+                }
             }
         }
 
@@ -80,13 +93,19 @@ pipeline {
             }
             steps {
                 echo '🔄 Running full regression test pack...'
-                sh '''
-                    if [ "${BROWSER}" = "browserstack" ]; then
-                        npm run test:regression -- --baseUrl https://browserstack.com
-                    else
-                        npm run test:regression
-                    fi
-                '''
+                script {
+                    if (params.USE_DOCKER) {
+                        runInDocker('npm run test:regression')
+                    } else {
+                        sh '''
+                            if [ "${BROWSER}" = "browserstack" ]; then
+                                npm run test:regression -- --baseUrl https://browserstack.com
+                            else
+                                npm run test:regression
+                            fi
+                        '''
+                    }
+                }
             }
         }
     }
@@ -136,4 +155,10 @@ pipeline {
             deleteDir()
         }
     }
+}
+
+// Builds the test image and runs a command in it, with the mock server started inside the container
+def runInDocker(String testCommand) {
+    sh 'mkdir -p logs && docker build -t agentic-qa-demo:${BUILD_NUMBER} .'
+    sh "docker run --rm -v \"\${WORKSPACE}\":/app -v /app/node_modules agentic-qa-demo:\${BUILD_NUMBER} sh -c 'npm ci && (node mock-server.js > logs/mock-server.log 2>&1 &) && sleep 3 && ${testCommand}'"
 }
