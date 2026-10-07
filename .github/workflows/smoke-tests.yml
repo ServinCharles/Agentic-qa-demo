@@ -1,0 +1,50 @@
+name: Smoke tests
+
+on:
+  push:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+jobs:
+  smoke:
+    if: github.event_name == 'push' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start mock server
+        run: |
+          node mock-server.js > mock-server.log 2>&1 &
+          for attempt in {1..30}; do
+            if curl --silent --fail http://localhost:3000/ > /dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          curl --silent --fail http://localhost:3000/ > /dev/null
+
+      - name: Run smoke tests
+        run: npm run test:smoke
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-test-results
+          path: |
+            allure-results/
+            mock-server.log
+          if-no-files-found: ignore
