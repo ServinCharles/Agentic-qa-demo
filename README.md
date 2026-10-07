@@ -24,8 +24,9 @@ A comprehensive test automation suite for the **Mortgage Decision-in-Principle (
 6. [Test Types](#test-types)
 7. [Project Structure](#project-structure)
 8. [Configuration](#configuration)
-9. [Architecture Rules](#architecture-rules)
-10. [Troubleshooting](#troubleshooting)
+9. [Jenkins Run](#jenkins-run)
+10. [Architecture Rules](#architecture-rules)
+11. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -362,6 +363,22 @@ curl -X POST http://localhost:3000/api/mortgages/dip/decision \
   -d '{"annualIncome": 45000, "loanAmount": 150000, "existingCommitments": 0}'
 # {"decision":"Accepted","reason":"Within standard affordability limits",...}
 ```
+
+---
+
+## 📸 Jenkins Run
+
+**Live Allure report:** https://servincharles.github.io/Agentic-qa-demo/report/ (GitHub Pages, source `/docs`). View locally with `npx allure open docs/report`.
+
+Pipeline: install → lint → mock server → smoke/regression → Allure report. Run it with **Build with Parameters** (`TEST_SUITE`, `BROWSER`, `USE_DOCKER`).
+
+| Pipeline stages | Allure report |
+|---|---|
+| ![Jenkins pipeline](docs/images/jenkins-pipeline.png) | ![Allure report](docs/images/allure-report.png) |
+
+| Build with Parameters | Scenario steps |
+|---|---|
+| ![Build parameters](docs/images/jenkins-parameters.png) | ![Allure scenario](docs/images/allure-scenario.png) |
 
 ---
 
