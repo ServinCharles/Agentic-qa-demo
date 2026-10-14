@@ -1,7 +1,7 @@
 const { Given, When, Then } = require('@wdio/cucumber-framework');
 const { expect } = require('@wdio/globals');
-const dipJourneyPage = require('../../pageobjects/dipJourney.page');
-const dipDecisionPage = require('../../pageobjects/dipDecision.page');
+const dipJourneyPage = require('../pages/dipJourney.page');
+const dipDecisionPage = require('../pages/dipDecision.page');
 
 Given('a new Decision-in-Principle journey has started', async () => {
   await dipJourneyPage.open();
