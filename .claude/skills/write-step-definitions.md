@@ -16,7 +16,7 @@ Use this skill when asked to implement step definitions for a feature file.
 ```javascript
 const { Given, When, Then } = require('@cucumber/cucumber');
 const { expect } = require('@wdio/globals');
-const myPage = require('../../pageobjects/myPage.page');
+const myPage = require('../pages/myPage.page');
 const testData = require('../../test-data/applicants.json');
 
 Given('a precondition is met', async () => {

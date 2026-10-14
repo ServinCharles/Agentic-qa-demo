@@ -1,10 +1,11 @@
 const { browser, $ } = require('@wdio/globals');
+const locators = require('../Locators/dipJourney.locators');
 
 class DipJourneyPage {
-  get annualIncomeInput() { return $('[data-testid="applicant-annual-income"]'); }
-  get monthlyCommitmentsInput() { return $('[data-testid="monthly-commitments"]'); }
-  get loanAmountInput() { return $('[data-testid="requested-loan-amount"]'); }
-  get getDecisionButton() { return $('[data-testid="get-decision"]'); }
+  get annualIncomeInput() { return $(locators.annualIncomeInput); }
+  get monthlyCommitmentsInput() { return $(locators.monthlyCommitmentsInput); }
+  get loanAmountInput() { return $(locators.loanAmountInput); }
+  get getDecisionButton() { return $(locators.getDecisionButton); }
 
   async open() {
     await browser.url('/mortgages/decision-in-principle');

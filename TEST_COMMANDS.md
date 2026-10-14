@@ -46,7 +46,7 @@ Starts web server at `http://localhost:5555` displaying Allure test report.
 
 | Command | Purpose |
 |---------|---------|
-| `npm run lint` | ESLint validation on features/ & pageobjects/ |
+| `npm run lint` | ESLint validation on features/ |
 
 ---
 
@@ -324,7 +324,7 @@ npm run wdio
 - **Test Runner:** WebdriverIO 8
 - **BDD Framework:** Cucumber (Gherkin)
 - **Browser:** Chrome (headless by default)
-- **Page ObjectModel:** `pageobjects/`
+- **Page ObjectModel:** `features/pages/` and `features/Locators/`
 - **Test Data:** `test-data/applicants.json`
 - **Reporting:** Allure + Custom HTML Report
 - **CI/CD:** Jenkins (Jenkinsfile configured)
@@ -337,7 +337,7 @@ features/                      # Gherkin feature files
 └── step-definitions/          # Cucumber step definitions
     └── dip-eligibility.steps.js
 
-pageobjects/                   # Page Object Model
+features/pages/ + features/Locators/   # Page Object Model
 ├── dipJourney.page.js
 ├── dipDecision.page.js
 └── components/                # Shared components
@@ -366,9 +366,9 @@ allure-report-viewer.js        # Report server
    ```
 
 3. **Add new scenarios:**
-   - Edit `features/dip-eligibility.feature`
+   - Edit `features/features/dip-eligibility.feature`
    - Add steps to `features/step-definitions/dip-eligibility.steps.js`
-   - Update page objects in `pageobjects/`
+   - Update page objects in `features/pages/` and `features/Locators/`
 
 4. **Configure for CI:**
    - Set `BASE_URL` in Jenkins credentials

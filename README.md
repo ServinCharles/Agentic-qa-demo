@@ -45,7 +45,7 @@ This framework is built on the **Agentic QA Development Kit** — a layered arch
 │  Auto-starts mock server · runs all suites in sequence  │
 ├─────────────────────────────────────────────────────────┤
 │  Layer 3 — Test Implementation Layer                    │
-│  features/ · step-definitions/ · pageobjects/           │
+│  features/ · step-definitions/ · pages/              │
 │  api-test.js · perf-test.js · a11y-test.js              │
 ├─────────────────────────────────────────────────────────┤
 │  Layer 2 — Test Infrastructure Layer                    │
@@ -72,7 +72,7 @@ This framework is built on the **Agentic QA Development Kit** — a layered arch
 
 ### Test Capabilities
 - **BDD Functional Tests** — Gherkin scenarios for DIP journey (smoke + regression)
-- **API Tests** — 10 HTTP endpoint tests (decisions, validation, calculators)
+- **API Tests** — 11 HTTP tests covering decisions, validation, response contracts, and calculators
 - **Performance Tests** — Single-pass metrics (page load, form interaction, visibility)
 - **Stress Tests** — 5-iteration load testing (reliability, variance analysis)
 - **Accessibility Audits** — WCAG 2.1 automated compliance checking
@@ -146,7 +146,7 @@ Auto-starts the mock server, runs all 5 test suites, stops the server, and opens
 |---------|-------|----------|
 | `npm run test:smoke` | BDD smoke tests | ~10s |
 | `npm run test:regression` | BDD full regression | ~1–2 min |
-| `npm run test:api` | API tests (10 endpoints) | ~1s |
+| `npm run test:api` | API tests (11 tests; writes `api-test-report.html`) | ~1s |
 | `npm run test:perf` | Performance metrics | ~3s |
 | `npm run test:stress` | 5-iteration stress test | ~15s |
 | `npm run test:a11y` | WCAG 2.1 accessibility | ~4s |
@@ -159,6 +159,8 @@ Auto-starts the mock server, runs all 5 test suites, stops the server, and opens
 npm run test:smoke:report       # Smoke + Allure report
 npm run test:regression:report  # Regression + Allure report
 ```
+
+The API suite generates `api-test-report.html` and opens it in your browser when run from an interactive local terminal. In CI or a non-interactive terminal, it prints the report path instead.
 
 ### Cross-Browser (BrowserStack)
 ```bash
@@ -203,7 +205,7 @@ The [Jenkinsfile](Jenkinsfile) pipeline: install, lint, start mock server, smoke
 
 ## 🔄 Test Types
 
-### 1. BDD Functional Tests (`features/dip-eligibility.feature`)
+### 1. BDD Functional Tests (`features/features/dip-eligibility.feature`)
 
 Three core DIP scenarios:
 
@@ -215,11 +217,14 @@ Three core DIP scenarios:
 
 ### 2. API Tests (`api-test.js`)
 
-10 tests covering:
+11 tests covering:
 - DIP decision endpoint (Accepted / Referred / Declined)
+- DIP decision response contract (content type, required fields, types, and decision values)
 - Input validation (missing fields, invalid types, negative values)
 - Edge cases (zero income, boundary LTV)
 - Affordability calculator endpoint
+
+The standard, referred, and declined decision scenarios load their synthetic applicant data from `test-data/applicants.json`.
 
 ### 3. Performance Tests (`perf-test.js`)
 
@@ -272,7 +277,7 @@ agentic-qa-demo/
 │   └── step-definitions/
 │       └── dip-eligibility.steps.js
 │
-├── pageobjects/                       # Page Object Model (Layer 3)
+├── pages/ + Locators/                 # Page Object Model (Layer 3)
 │   ├── dipJourney.page.js
 │   └── dipDecision.page.js
 │
@@ -388,8 +393,8 @@ Pipeline: install → lint → mock server → smoke/regression → Allure repor
 
 ## 🏛️ Architecture Rules
 
-1. **Page Object Model is mandatory.** No selectors inside step definitions. All locators live in `pageobjects/*.page.js`.
-2. **One page object per screen.** Shared components go in `pageobjects/components/`.
+1. **Page Object Model is mandatory.** No selectors inside step definitions. All locators live in `features/Locators/*.locators.js` and are used by `features/pages/*.page.js`.
+2. **One page object per screen.** Shared components go in `features/pages/components/`.
 3. **Step definitions are thin** — orchestration only. Assertions use `expect` from `@wdio/globals`.
 4. **No `browser.pause()`** outside debugging. Use WebdriverIO auto-wait or `waitForDisplayed`.
 5. **Never hardcode credentials, PII, card/account numbers.** Use `test-data/*.json` + environment variables.

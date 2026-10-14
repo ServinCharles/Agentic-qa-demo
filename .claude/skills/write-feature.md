@@ -30,5 +30,5 @@ Feature: <Feature name>
 
 ## After creating the feature file
 1. Create the matching step definition file in `features/step-definitions/`
-2. Create or update the page object in `pageobjects/`
+2. Create or update the page object in `features/pages/` (locators in `features/Locators/`)
 3. Run `npm run test:smoke` to verify it passes locally

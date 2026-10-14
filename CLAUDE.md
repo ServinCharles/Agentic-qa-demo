@@ -9,7 +9,7 @@ BDD test automation framework for a retail banking web application
 (Mortgage Decision-in-Principle journey). Stack:
 
 - WebdriverIO 8 + Cucumber BDD (JavaScript)
-- Page Object Model under `pageobjects/`
+- Page Object Model under `features/pages/` and `features/Locators/`
 - Feature files under `features/`, step definitions under `features/step-definitions/`
 - CI: Jenkins (Jenkinsfile in repo root)
 - Cross-browser: BrowserStack (config in `wdio.browserstack.conf.js`)
@@ -17,9 +17,9 @@ BDD test automation framework for a retail banking web application
 ## Architecture rules
 
 1. **Page Object Model is mandatory.** No selectors inside step definitions —
-   ever. All locators live in `pageobjects/*.page.js`.
+   ever. All locators live in `features/Locators/*.locators.js` and are used by `features/pages/*.page.js`.
 2. One page object per screen. Shared components (header, cookie banner)
-   go in `pageobjects/components/`.
+   go in `features/pages/components/`.
 3. Step definitions must be thin: orchestration only, no assertions on raw
    selectors. Assertions use `expect` from `@wdio/globals`.
 4. Waits: use WebdriverIO auto-wait or explicit `waitForDisplayed`.
@@ -56,7 +56,8 @@ BDD test automation framework for a retail banking web application
 ```
 features/                  Gherkin feature files
 features/step-definitions/ Cucumber step definitions
-pageobjects/               Page Object Model classes
+features/pages/                    Page Object Model classes
+features/Locators/                 Selector files used by pages
 test-data/                 Synthetic test data (JSON)
 .claude/                   Agent configuration (skills, hooks, subagents)
 wdio.conf.js               Local WebdriverIO config
@@ -67,4 +68,4 @@ Jenkinsfile                CI pipeline
 
 - `npm run test:smoke` — smoke pack, headless Chrome
 - `npm run test:regression` — full regression pack
-- `npm run lint` — ESLint over features/ and pageobjects/
+- `npm run lint` — ESLint over features/

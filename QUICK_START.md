@@ -114,7 +114,7 @@ agentic-qa-demo/
 │   ├── dip-eligibility.feature
 │   └── step-definitions/
 │       └── dip-eligibility.steps.js
-├── pageobjects/                 # Page Object Model
+├── pages/ + Locators/           # Page Object Model
 │   ├── dipJourney.page.js
 │   ├── dipDecision.page.js
 │   └── components/

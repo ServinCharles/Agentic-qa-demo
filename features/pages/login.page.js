@@ -1,5 +1,6 @@
 const { $ } = require('@wdio/globals')
 const Page = require('./page');
+const locators = require('../Locators/login.locators');
 
 /**
  * sub page containing specific selectors and methods for a specific page
@@ -9,15 +10,15 @@ class LoginPage extends Page {
      * define selectors using getter methods
      */
     get inputUsername () {
-        return $('#username');
+        return $(locators.inputUsername);
     }
 
     get inputPassword () {
-        return $('#password');
+        return $(locators.inputPassword);
     }
 
     get btnSubmit () {
-        return $('button[type="submit"]');
+        return $(locators.btnSubmit);
     }
 
     /**
