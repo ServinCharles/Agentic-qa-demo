@@ -353,7 +353,7 @@ npm run generate:ticket -- ABC-123 --mock
 
 Inputs and outputs:
 - Mock payload input: `test-data/mock-jira/ABC-123.json`
-- Generated feature output: `generated-features/abc-123.feature`
+- Generated feature output: `AI-generated-features/abc-123.feature`
 
 This keeps generated drafts outside `features/` so they do not affect normal test execution until reviewed and promoted.
 
