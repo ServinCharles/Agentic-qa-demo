@@ -11,7 +11,7 @@ function parseArgs(argv) {
   return {
     ticketId,
     mockFlag,
-    outDir: outDirArg ? outDirArg.split('=')[1] : 'generated-features',
+    outDir: outDirArg ? outDirArg.split('=')[1] : 'AI-generated-features',
     mockFile: mockFileArg ? mockFileArg.split('=')[1] : null,
   };
 }
@@ -91,7 +91,7 @@ function main() {
   const { ticketId, mockFlag, outDir, mockFile } = parseArgs(process.argv);
 
   if (!ticketId) {
-    console.error('Usage: npm run generate:ticket -- <TICKET-ID> [--mock] [--mockFile=path] [--outDir=generated-features]');
+    console.error('Usage: npm run generate:ticket -- <TICKET-ID> [--mock] [--mockFile=path] [--outDir=AI-generated-features]');
     process.exit(1);
   }
 
