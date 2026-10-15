@@ -23,7 +23,7 @@ async function stressTest(iterations = 5) {
       const iterStart = Date.now();
       
       // Load page
-      await browser.url('http://localhost:3000/mortgages/decision-in-principle');
+      await browser.url(`${process.env.BASE_URL || 'http://localhost:3000'}/mortgages/decision-in-principle`);
       
       // Fill form
       const income = await browser.$('[data-testid="applicant-annual-income"]');

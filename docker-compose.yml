@@ -1,0 +1,33 @@
+# Runs the app under test (two microservices from their own repos) locally on http://localhost:8090.
+# Port 3000 stays reserved for mock-server.js, which remains the default for local runs.
+#
+# Expects sibling clones by default:
+#   ../aip-mortgage-api   (.NET API)       https://github.com/ServinCharles/aip-mortgage-api
+#   ../aip-webapp         (React web app)  https://github.com/ServinCharles/aip-webapp
+# Override with AIP_API_DIR / AIP_WEBAPP_DIR.
+#
+#   docker compose up --build -d
+#   BASE_URL=http://localhost:8090 npm run test:api
+#   docker compose stop aip-api     # writes coverage/aip-api.e2e.cobertura.xml
+#   docker compose down
+services:
+  aip-api:
+    build:
+      context: ${AIP_API_DIR:-../aip-mortgage-api}
+      # Runs the API under dotnet-coverage so the suites produce code coverage of the app under test
+      target: ${AIP_API_TARGET:-coverage}
+    stop_signal: SIGINT
+    stop_grace_period: 30s
+    volumes:
+      - ./coverage:/coverage
+    expose:
+      - "8080"
+
+  aip-webapp:
+    build: ${AIP_WEBAPP_DIR:-../aip-webapp}
+    environment:
+      API_UPSTREAM: http://aip-api:8080
+    ports:
+      - "8090:8080"
+    depends_on:
+      - aip-api

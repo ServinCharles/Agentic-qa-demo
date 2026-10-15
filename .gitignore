@@ -33,3 +33,7 @@ coverage/
 
 browserstack.err
 local.log
+
+# App repos checked out by CI, and service logs
+app/
+services.log
