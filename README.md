@@ -205,12 +205,14 @@ The [Jenkinsfile](Jenkinsfile) pipeline: install, lint, start mock server, smoke
 
 ## ☁️ App Under Test: AIP Microservices on AWS
 
-`mock-server.js` stays the default for quick local runs (port 3000, used by `node run-all-tests.js`). The framework also tests a real **Agreement in Principle (AIP)** app made of two microservices, each in its own repo and deployed to the `aip-mortgage` namespace on Amazon EKS:
+`mock-server.js` stays the default for quick local runs (port 3000, used by `node run-all-tests.js`). The framework also tests a real **Agreement in Principle (AIP)** app made of two microservices, each in its own repo and deployed to Amazon EKS by the [AIP Deployment Pipeline](https://github.com/ServinCharles/aip-deployment-pipeline) (sit-01 and sit-02, each with a `-dip` frontend and `-api` backend namespace):
 
 | Repo | Microservice | Tech |
 | --- | --- | --- |
-| [aip-mortgage-api](https://github.com/ServinCharles/aip-mortgage-api) | `aip-api` | .NET 8 API (+ Terraform for EKS/ECR) |
+| [aip-mortgage-api](https://github.com/ServinCharles/aip-mortgage-api) | `aip-api` | .NET 8 API |
 | [aip-webapp](https://github.com/ServinCharles/aip-webapp) | `aip-webapp` | React on nginx, public via AWS load balancer |
+
+After every deploy, the AIP Deployment Pipeline runs this framework's Jenkins job with `BASE_URL` set to the environment's URL (`TEST_SUITE=api` for an API deploy, `smoke` for a web app deploy).
 
 Same routes, `data-testid`s and API contract as the mock server, so every suite runs unchanged. Only `BASE_URL` changes:
 
@@ -221,7 +223,7 @@ BASE_URL=http://localhost:8090 npm run test:api
 BASE_URL=http://localhost:8090 npm run test:regression
 docker compose stop aip-api        # code coverage of the .NET API -> coverage/aip-api.e2e.cobertura.xml
 
-# Against AWS (URL printed by aip-webapp's deploy script)
+# Against AWS (URL printed by the AIP Deployment Pipeline)
 BASE_URL=http://<load-balancer> npm run test:smoke
 ```
 
