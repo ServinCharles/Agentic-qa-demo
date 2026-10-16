@@ -10,10 +10,15 @@ pipeline {
             choices: ['smoke', 'regression', 'api', 'all'],
             description: 'Test suite to run'
         )
+        choice(
+            name: 'ENVIRONMENT',
+            choices: ['mock', 'sit-01', 'sit-02'],
+            description: 'Where to run the tests. mock = local mock server. sit-01 / sit-02 use the SIT_01_URL / SIT_02_URL Jenkins variables'
+        )
         string(
             name: 'BASE_URL',
             defaultValue: '',
-            description: 'App under test, e.g. http://<load balancer> (set by the AIP Deployment Pipeline). Empty = local mock server'
+            description: 'Optional: override the environment URL, e.g. http://localhost:8090 for a port-forward. Set by the AIP Deployment Pipeline'
         )
         choice(
             name: 'BROWSER',
@@ -28,8 +33,8 @@ pipeline {
     }
 
     environment {
-        // Tests read BASE_URL; empty means the local mock server on port 3000
-        BASE_URL = "${params.BASE_URL?.trim() ?: 'http://localhost:3000'}"
+        // Tests read BASE_URL: the override if given, otherwise the chosen environment's URL
+        BASE_URL = "${resolveBaseUrl()}"
         PATH = "/Applications/Docker.app/Contents/Resources/bin:/opt/homebrew/bin:/usr/local/bin:${PATH}"
 
         // BrowserStack credentials from Jenkins credential store
@@ -43,6 +48,24 @@ pipeline {
     }
 
     stages {
+        stage('Resolve Environment') {
+            steps {
+                script {
+                    if (env.BASE_URL == 'MISSING') {
+                        def variable = params.ENVIRONMENT.toUpperCase().replace('-', '_') + '_URL'
+                        error "No URL for ${params.ENVIRONMENT}. Add ${variable} under Manage Jenkins → System → Global properties → Environment variables, or pass BASE_URL"
+                    }
+                    currentBuild.displayName = "#${env.BUILD_NUMBER} ${params.TEST_SUITE} on ${params.ENVIRONMENT}"
+                    echo "🎯 Testing ${params.ENVIRONMENT} at ${env.BASE_URL}"
+                }
+                // Shown on the Allure report's Environment panel
+                sh '''
+                    mkdir -p allure-results
+                    printf 'Environment=%s\nBase.URL=%s\nSuite=%s\nBrowser=%s\n' "$ENVIRONMENT" "$BASE_URL" "$TEST_SUITE" "$BROWSER" > allure-results/environment.properties
+                '''
+            }
+        }
+
         stage('Install Dependencies') {
             steps {
                 echo '📦 Installing npm dependencies...'
@@ -61,7 +84,7 @@ pipeline {
 
         stage('Start Mock Server') {
             when {
-                expression { !params.USE_DOCKER && !params.BASE_URL?.trim() }
+                expression { !params.USE_DOCKER && params.ENVIRONMENT == 'mock' && !params.BASE_URL?.trim() }
             }
             steps {
                 echo '🚀 Starting mock server on port 3000...'
@@ -197,4 +220,17 @@ def runInDocker(String testCommand) {
         docker build -t agentic-qa-demo:${BUILD_NUMBER} .
     '''
     sh "docker run --rm -v \"\${WORKSPACE}\":/app -v /app/node_modules agentic-qa-demo:\${BUILD_NUMBER} sh -c 'npm ci && (node mock-server.js > logs/mock-server.log 2>&1 &) && sleep 3 && ${testCommand}'"
+}
+
+// BASE_URL for the run: an explicit override wins, then the environment's Jenkins variable.
+// Returns 'MISSING' so the Resolve Environment stage can fail with a clear message.
+def resolveBaseUrl() {
+    if (params.BASE_URL?.trim()) {
+        return params.BASE_URL.trim()
+    }
+    switch (params.ENVIRONMENT) {
+        case 'sit-01': return env.SIT_01_URL?.trim() ?: 'MISSING'
+        case 'sit-02': return env.SIT_02_URL?.trim() ?: 'MISSING'
+        default:       return 'http://localhost:3000'
+    }
 }
