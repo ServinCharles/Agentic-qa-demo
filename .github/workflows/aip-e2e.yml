@@ -1,0 +1,77 @@
+name: AIP microservices E2E
+
+# Builds both app repos and runs this framework's suites against them, with code coverage of the .NET API.
+on:
+  push:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    env:
+      AIP_API_DIR: ./app/aip-mortgage-api
+      AIP_WEBAPP_DIR: ./app/aip-webapp
+      BASE_URL: http://localhost:8090
+    steps:
+      - name: Check out test framework
+        uses: actions/checkout@v4
+
+      - name: Check out aip-mortgage-api
+        uses: actions/checkout@v4
+        with:
+          repository: ServinCharles/aip-mortgage-api
+          path: app/aip-mortgage-api
+
+      - name: Check out aip-webapp
+        uses: actions/checkout@v4
+        with:
+          repository: ServinCharles/aip-webapp
+          path: app/aip-webapp
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+
+      - name: Start aip-api + aip-webapp
+        run: |
+          mkdir -p coverage
+          docker compose up --build -d
+          for attempt in $(seq 1 60); do
+            if curl --silent --fail http://localhost:8090/api/mortgages/dip/decision \
+                 -H 'Content-Type: application/json' \
+                 -d '{"annualIncome":45000,"loanAmount":150000}' > /dev/null; then
+              echo "Services ready"; exit 0
+            fi
+            sleep 2
+          done
+          docker compose logs
+          exit 1
+
+      - name: API tests
+        run: npm run test:api
+
+      - name: BDD regression tests
+        run: npm run test:regression
+
+      - name: Stop API and collect coverage
+        if: always()
+        run: |
+          docker compose stop aip-api
+          docker compose logs > services.log
+          ls -l coverage/
+          test -s coverage/aip-api.e2e.cobertura.xml
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aip-e2e-results
+          path: |
+            allure-results/
+            api-test-report.html
+            coverage/
+            services.log
+          if-no-files-found: ignore

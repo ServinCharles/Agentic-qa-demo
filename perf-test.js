@@ -21,7 +21,7 @@ async function runPerformanceTest() {
     // Test 1: Page Load Time
     console.log('📊 Test 1: Page Load Time');
     const loadStart = Date.now();
-    await browser.url('http://localhost:3000/mortgages/decision-in-principle');
+    await browser.url(`${process.env.BASE_URL || 'http://localhost:3000'}/mortgages/decision-in-principle`);
     const loadTime = Date.now() - loadStart;
     performanceMetrics.pageLoadTimes.push(loadTime);
     console.log(`   ✓ Page loaded in ${loadTime}ms\n`);

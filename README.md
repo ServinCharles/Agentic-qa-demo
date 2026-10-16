@@ -203,6 +203,34 @@ The [Jenkinsfile](Jenkinsfile) pipeline: install, lint, start mock server, smoke
 
 ---
 
+## ☁️ App Under Test: AIP Microservices on AWS
+
+`mock-server.js` stays the default for quick local runs (port 3000, used by `node run-all-tests.js`). The framework also tests a real **Agreement in Principle (AIP)** app made of two microservices, each in its own repo and deployed to Amazon EKS by the [AIP Deployment Pipeline](https://github.com/ServinCharles/aip-deployment-pipeline) (sit-01 and sit-02, each with a `-dip` frontend and `-api` backend namespace):
+
+| Repo | Microservice | Tech |
+| --- | --- | --- |
+| [aip-mortgage-api](https://github.com/ServinCharles/aip-mortgage-api) | `aip-api` | .NET 8 API |
+| [aip-webapp](https://github.com/ServinCharles/aip-webapp) | `aip-webapp` | React on nginx, public via AWS load balancer |
+
+After every deploy, the AIP Deployment Pipeline runs this framework's Jenkins job with `BASE_URL` set to the environment's URL (`TEST_SUITE=api` for an API deploy, `smoke` for a web app deploy).
+
+Same routes, `data-testid`s and API contract as the mock server, so every suite runs unchanged. Only `BASE_URL` changes:
+
+```
+# Locally (clone both app repos next to this one), on port 8090 (3000 is the mock server, 8080 is Jenkins)
+docker compose up --build -d
+BASE_URL=http://localhost:8090 npm run test:api
+BASE_URL=http://localhost:8090 npm run test:regression
+docker compose stop aip-api        # code coverage of the .NET API -> coverage/aip-api.e2e.cobertura.xml
+
+# Against AWS (URL printed by the AIP Deployment Pipeline)
+BASE_URL=http://<load-balancer> npm run test:smoke
+```
+
+The **AIP microservices E2E** workflow checks out both app repos, builds them, runs the API and BDD suites and uploads the coverage report.
+
+---
+
 ## 🔄 Test Types
 
 ### 1. BDD Functional Tests (`features/features/dip-eligibility.feature`)

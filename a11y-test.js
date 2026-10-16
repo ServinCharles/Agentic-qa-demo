@@ -20,7 +20,7 @@ async function runAccessibilityTest() {
     // Test 1: Home Page Accessibility
     console.log('📄 Test 1: Page Accessibility (WCAG2AA)\n');
     
-    await browser.url('http://localhost:3000/mortgages/decision-in-principle');
+    await browser.url(`${process.env.BASE_URL || 'http://localhost:3000'}/mortgages/decision-in-principle`);
     
     const axeBuilder = new AxeBuilder({ client: browser });
     const axeResults = await axeBuilder

@@ -7,8 +7,13 @@ pipeline {
     parameters {
         choice(
             name: 'TEST_SUITE',
-            choices: ['smoke', 'regression', 'all'],
+            choices: ['smoke', 'regression', 'api', 'all'],
             description: 'Test suite to run'
+        )
+        string(
+            name: 'BASE_URL',
+            defaultValue: '',
+            description: 'App under test, e.g. http://<load balancer> (set by the AIP Deployment Pipeline). Empty = local mock server'
         )
         choice(
             name: 'BROWSER',
@@ -23,6 +28,8 @@ pipeline {
     }
 
     environment {
+        // Tests read BASE_URL; empty means the local mock server on port 3000
+        BASE_URL = "${params.BASE_URL?.trim() ?: 'http://localhost:3000'}"
         PATH = "/Applications/Docker.app/Contents/Resources/bin:/opt/homebrew/bin:/usr/local/bin:${PATH}"
 
         // BrowserStack credentials from Jenkins credential store
@@ -54,7 +61,7 @@ pipeline {
 
         stage('Start Mock Server') {
             when {
-                expression { !params.USE_DOCKER }
+                expression { !params.USE_DOCKER && !params.BASE_URL?.trim() }
             }
             steps {
                 echo '🚀 Starting mock server on port 3000...'
@@ -62,6 +69,27 @@ pipeline {
                 sh 'nohup node mock-server.js > logs/mock-server.log 2>&1 &'
                 sh 'sleep 3'
                 sh 'curl -s http://localhost:3000 || curl -s http://localhost:3000/health || echo "Mock server started"'
+            }
+        }
+
+        stage('Run API Tests') {
+            when {
+                expression { params.TEST_SUITE == 'api' || params.TEST_SUITE == 'all' }
+            }
+            steps {
+                echo '🔌 Running API test suite...'
+                script {
+                    if (params.USE_DOCKER) {
+                        runInDocker('npm run test:api')
+                    } else {
+                        sh 'npm run test:api'
+                    }
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'api-test-report.html', allowEmptyArchive: true
+                }
             }
         }
 
