@@ -58,6 +58,15 @@ pipeline {
                     currentBuild.displayName = "#${env.BUILD_NUMBER} ${params.TEST_SUITE} on ${params.ENVIRONMENT}"
                     echo "🎯 Testing ${params.ENVIRONMENT} at ${env.BASE_URL}"
                 }
+                // Fail fast with a clear message if the app isn't reachable (e.g. port-forward not running)
+                sh '''
+                    if [ "$ENVIRONMENT" != "mock" ] && ! curl -s -o /dev/null --max-time 10 "$BASE_URL/"; then
+                        echo "❌ Cannot reach $BASE_URL for $ENVIRONMENT."
+                        echo "   For a local cluster, start the port-forward first:"
+                        echo "   kubectl -n $ENVIRONMENT-dip port-forward svc/aip-webapp 8090:80"
+                        exit 1
+                    fi
+                '''
                 // Shown on the Allure report's Environment panel
                 sh '''
                     mkdir -p allure-results
