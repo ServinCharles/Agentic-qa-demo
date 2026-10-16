@@ -212,7 +212,16 @@ The [Jenkinsfile](Jenkinsfile) pipeline: install, lint, start mock server, smoke
 | [aip-mortgage-api](https://github.com/ServinCharles/aip-mortgage-api) | `aip-api` | .NET 8 API |
 | [aip-webapp](https://github.com/ServinCharles/aip-webapp) | `aip-webapp` | React on nginx, public via AWS load balancer |
 
-After every deploy, the AIP Deployment Pipeline runs this framework's Jenkins job with `BASE_URL` set to the environment's URL (`TEST_SUITE=api` for an API deploy, `smoke` for a web app deploy).
+**Choosing the environment in Jenkins:** run the job with **`ENVIRONMENT`** = `mock` (the local mock server, default), `sit-01` or `sit-02`. The URLs for sit-01 and sit-02 live in Jenkins, so they're set once rather than typed on every run: **Manage Jenkins → System → Global properties → Environment variables**:
+
+| Name | Example value |
+| --- | --- |
+| `SIT_01_URL` | `http://<sit-01 load balancer>` or `https://sit-01.aip.<your-domain>` |
+| `SIT_02_URL` | `http://<sit-02 load balancer>` or `https://sit-02.aip.<your-domain>` |
+
+`BASE_URL` overrides the environment's URL for one run (e.g. `http://localhost:8090` for a port-forward to a local cluster). The chosen environment and URL appear on the Allure report's **Environment** panel.
+
+After every deploy, the AIP Deployment Pipeline runs this framework's Jenkins job with `ENVIRONMENT` and `BASE_URL` set (`TEST_SUITE=api` for an API deploy, `smoke` for a web app deploy).
 
 Same routes, `data-testid`s and API contract as the mock server, so every suite runs unchanged. Only `BASE_URL` changes:
 
