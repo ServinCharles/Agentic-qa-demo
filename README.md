@@ -195,7 +195,9 @@ The [Jenkinsfile](Jenkinsfile) pipeline: install, lint, start mock server, smoke
 
 | Parameter | Values | Purpose |
 |-----------|--------|---------|
-| `TEST_SUITE` | `smoke`, `regression`, `all` | Which pack to run |
+| `TEST_SUITE` | `smoke`, `regression`, `api`, `all` | Which pack to run |
+| `ENVIRONMENT` | `mock` (default), `sit-01`, `sit-02` | Where to run: the local mock server, or a deployed AIP environment |
+| `BASE_URL` | empty, or a URL | Optional override of the environment's URL, e.g. `http://localhost:8090` |
 | `BROWSER` | `local`, `browserstack` | Local Chrome or BrowserStack |
 | `USE_DOCKER` | `false` (default), `true` | Build the Dockerfile image and run tests in a container |
 
@@ -226,6 +228,34 @@ docker compose stop aip-api        # code coverage of the .NET API -> coverage/a
 # Against AWS (URL printed by the AIP Deployment Pipeline)
 BASE_URL=http://<load-balancer> npm run test:smoke
 ```
+
+### Testing sit-01 / sit-02 on a local cluster (colima)
+
+On a local cluster the web app's load balancer address (e.g. `192.168.5.1`) only exists inside the colima VM, so the tests reach the app through a `kubectl port-forward` on `http://localhost:8090`.
+
+1. In a **separate terminal**, start the port-forward and leave it open while the tests run:
+   ```
+   kubectl -n sit-01-dip port-forward svc/aip-webapp 8090:80
+   ```
+   It prints `Forwarding from 127.0.0.1:8090 -> 8080` and then waits. For sit-02 use `sit-02-dip`.
+2. In another terminal, check the app is reachable:
+   ```
+   curl http://localhost:8090/healthz
+   ```
+   It should print `ok`.
+3. In Jenkins, **Build with Parameters**: `ENVIRONMENT=sit-01`, `TEST_SUITE=smoke` (or `api`, `regression`), `BROWSER=local`, `BASE_URL` empty.
+
+A port-forward is tied to one pod, so it stops whenever aip-webapp is redeployed. Restart it after every web app deploy, or use a loop that reconnects by itself:
+
+```
+while true; do kubectl -n sit-01-dip port-forward svc/aip-webapp 8090:80; sleep 2; done
+```
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| `net::ERR_CONNECTION_REFUSED` or `curl: (7) Failed to connect to localhost port 8090` | The port-forward isn't running | Start it (step 1) |
+| `address already in use` when starting the port-forward | Something else is on 8090 | `lsof -i :8090` to find it |
+| kubectl `connection refused` or context errors | kubectl isn't pointing at colima | `kubectl config use-context colima` |
 
 The **AIP microservices E2E** workflow checks out both app repos, builds them, runs the API and BDD suites and uploads the coverage report.
 
