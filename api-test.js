@@ -169,6 +169,9 @@ class APITester {
       });
 
     } catch (error) {
+      // A refused connection to "localhost" arrives as an AggregateError with an empty message
+      const reason = error.message || error.code || error.errors?.[0]?.code || String(error);
+      error.message = `${reason} (${this.baseUrl})`;
       console.log(`   ❌ ERROR: ${error.message}`);
       this.failed++;
       this.results.push({
