@@ -1,5 +1,45 @@
 const http = require('http');
 const url = require('url');
+const crypto = require('crypto');
+
+// In-memory stand-ins for what aip-api saves to MongoDB and what aip-audit-service audits from Kafka,
+// so the events suite runs locally exactly as it does against sit-01
+const applications = new Map();
+const auditTrails = new Map();
+const APPLICATION_ID = /^AIP-[0-9]{8}-[0-9A-F]{8}$/;
+const EVENT_DELAY_MS = 300; // events arrive a moment after the decision, like a real Kafka consumer
+
+function newApplicationId(now = new Date()) {
+  const date = now.toISOString().slice(0, 10).replace(/-/g, '');
+  return `AIP-${date}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+}
+
+function saveAndPublish(applicationId, input, result) {
+  const createdAt = new Date().toISOString();
+  applications.set(applicationId, { id: applicationId, createdAt, input, result });
+
+  setTimeout(() => {
+    const event = {
+      eventId: crypto.randomUUID(),
+      eventType: 'AipDecisionMade',
+      schemaVersion: 1,
+      applicationId,
+      decision: result.decision,
+      loanAmount: input.loanAmount,
+      maxBorrowing: result.maxBorrowing,
+      occurredAt: createdAt,
+      receivedAt: new Date().toISOString(),
+      partition: 0,
+      offset: [...auditTrails.values()].reduce((total, events) => total + events.length, 0)
+    };
+    auditTrails.set(applicationId, [...(auditTrails.get(applicationId) || []), event]);
+  }, EVENT_DELAY_MS);
+}
+
+function sendJson(res, status, body) {
+  res.writeHead(status, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(body));
+}
 
 // DIP Decision Logic - Corrected
 function calculateDIPDecision(annualIncome, loanAmount, existingCommitments) {
@@ -140,8 +180,15 @@ const server = http.createServer((req, res) => {
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify(result));
         } else {
+          // Same as aip-api: an application ID first, then the original fields unchanged
+          const applicationId = newApplicationId();
+          saveAndPublish(applicationId, {
+            annualIncome: data.annualIncome,
+            monthlyCommitments: data.existingCommitments || 0,
+            loanAmount: data.loanAmount
+          }, result);
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify(result));
+          res.end(JSON.stringify({ applicationId, ...result }));
         }
       } catch (e) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -183,6 +230,32 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // API: saved application (aip-api, persistence on)
+  const applicationMatch = pathname.match(/^\/api\/applications\/([^/]+)$/);
+  if (applicationMatch && req.method === 'GET') {
+    const applicationId = decodeURIComponent(applicationMatch[1]);
+    if (!APPLICATION_ID.test(applicationId)) {
+      sendJson(res, 400, { error: 'Invalid application ID', details: ['Expected AIP-yyyyMMdd-XXXXXXXX'] });
+    } else if (!applications.has(applicationId)) {
+      sendJson(res, 404, { error: 'Application not found' });
+    } else {
+      sendJson(res, 200, applications.get(applicationId));
+    }
+    return;
+  }
+
+  // API: audit trail (aip-audit-service)
+  const auditMatch = pathname.match(/^\/api\/audit\/([^/]+)$/);
+  if (auditMatch && req.method === 'GET') {
+    const applicationId = decodeURIComponent(auditMatch[1]);
+    if (!APPLICATION_ID.test(applicationId)) {
+      sendJson(res, 400, { error: 'Invalid application ID', details: ['Expected AIP-yyyyMMdd-XXXXXXXX'] });
+    } else {
+      sendJson(res, 200, { applicationId, events: auditTrails.get(applicationId) || [] });
+    }
+    return;
+  }
+
   // 404
   res.writeHead(404, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ error: 'Not Found' }));
@@ -192,5 +265,7 @@ server.listen(3000, () => {
   console.log('✅ Mock server running at http://localhost:3000');
   console.log('   📝 GET  / - Serves DIP HTML form');
   console.log('   🔌 POST /api/mortgages/dip/decision - DIP decision endpoint');
-  console.log('   🔌 POST /api/mortgages/dip/calculate-borrowing-power - Calculator endpoint\n');
+  console.log('   🔌 POST /api/mortgages/dip/calculate-borrowing-power - Calculator endpoint');
+  console.log('   🔌 GET  /api/applications/:id - Saved application');
+  console.log('   🔌 GET  /api/audit/:id - Audit trail of decision events\n');
 });

@@ -9,6 +9,7 @@
     "test:stress": "node perf-stress-test.js",
     "test:a11y": "node a11y-test.js",
     "test:api": "node api-test.js",
+    "test:events": "node events-test.js",
     "test:bstack:smoke": "wdio run wdio.browserstack.conf.js --cucumberOpts.tags '@smoke'",
     "test:bstack:regression": "wdio run wdio.browserstack.conf.js --cucumberOpts.tags '@regression'",
     "test:bstack": "wdio run wdio.browserstack.conf.js",

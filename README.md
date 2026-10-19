@@ -195,9 +195,10 @@ The [Jenkinsfile](Jenkinsfile) pipeline: install, lint, start mock server, smoke
 
 | Parameter | Values | Purpose |
 |-----------|--------|---------|
-| `TEST_SUITE` | `smoke`, `regression`, `api`, `all` | Which pack to run |
+| `TEST_SUITE` | `smoke`, `regression`, `api`, `events`, `all` | Which pack to run (`all` = smoke, regression and api) |
 | `ENVIRONMENT` | `mock` (default), `sit-01`, `sit-02` | Where to run: the local mock server, or a deployed AIP environment |
 | `BASE_URL` | empty, or a URL | Optional override of the environment's URL, e.g. `http://localhost:8090` |
+| `AUDIT_URL` | empty, or a URL | `events` suite only: aip-audit-service URL. Empty = the mock for `mock`, `http://localhost:8091` for SIT |
 | `BROWSER` | `local`, `browserstack` | Local Chrome or BrowserStack |
 | `USE_DOCKER` | `false` (default), `true` | Build the Dockerfile image and run tests in a container |
 
@@ -256,6 +257,35 @@ while true; do kubectl -n sit-01-dip port-forward svc/aip-webapp 8090:80; sleep 
 | `net::ERR_CONNECTION_REFUSED` or `curl: (7) Failed to connect to localhost port 8090` | The port-forward isn't running | Start it (step 1) |
 | `address already in use` when starting the port-forward | Something else is on 8090 | `lsof -i :8090` to find it |
 | kubectl `connection refused` or context errors | kubectl isn't pointing at colima | `kubectl config use-context colima` |
+
+### Events suite: application saved and decision audited
+
+`events-test.js` (`npm run test:events`) proves the event-driven part of the platform: aip-api saves each application to MongoDB and publishes an `AipDecisionMade` event to Kafka, and aip-audit-service records it.
+
+| Test | Checks |
+| --- | --- |
+| Application ID | Every decision returns its own `applicationId` (`AIP-yyyyMMdd-XXXXXXXX`) |
+| Application saved | `GET /api/applications/{id}` returns the same income, commitments, loan and decision |
+| Not found / invalid | Unknown ID gives 404, a malformed ID gives 400 |
+| Event audited | Polls `GET /api/audit/{id}` until the event appears (no fixed sleeps), then checks the contract: `eventType`, `schemaVersion`, `decision`, no income in the event |
+| Exactly once | Still one audited event a couple of seconds later |
+| All outcomes | Accepted, Referred and Declined are each audited with the right decision |
+| Rejected request | A 400 response has no `applicationId` |
+
+Results go to `reports/events-tests.xml` (JUnit, shown in Jenkins). Duplicate delivery, the dead-letter topic and restart catch-up need direct Kafka access, so they're tested in aip-audit-service's own pipeline.
+
+```bash
+# Against the mock (it simulates the saved applications and the audit trail)
+node mock-server.js &
+npm run test:events
+
+# Against sit-01: the web app and the audit service each need a port-forward
+kubectl -n sit-01-dip port-forward svc/aip-webapp 8090:80 &
+kubectl -n sit-01-api port-forward svc/aip-audit-service 8091:8080 &
+BASE_URL=http://localhost:8090 AUDIT_URL=http://localhost:8091 npm run test:events
+```
+
+The suite needs persistence switched on, so run it against `mock` or `sit-01` (sit-02 has it off until sit-01 is proven).
 
 The **AIP microservices E2E** workflow checks out both app repos, builds them, runs the API and BDD suites and uploads the coverage report.
 

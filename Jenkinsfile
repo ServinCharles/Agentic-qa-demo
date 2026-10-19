@@ -7,8 +7,8 @@ pipeline {
     parameters {
         choice(
             name: 'TEST_SUITE',
-            choices: ['smoke', 'regression', 'api', 'all'],
-            description: 'Test suite to run'
+            choices: ['smoke', 'regression', 'api', 'events', 'all'],
+            description: 'Test suite to run. events = application saved (MongoDB) and decision audited (Kafka); needs persistence on, so mock or sit-01. all = smoke, regression and api'
         )
         choice(
             name: 'ENVIRONMENT',
@@ -19,6 +19,11 @@ pipeline {
             name: 'BASE_URL',
             defaultValue: '',
             description: 'Optional: override the environment URL, e.g. http://localhost:8090 for a port-forward. Set by the AIP Deployment Pipeline'
+        )
+        string(
+            name: 'AUDIT_URL',
+            defaultValue: '',
+            description: 'events suite only: aip-audit-service URL. Empty = BASE_URL for mock, http://localhost:8091 for sit-01/sit-02 (kubectl -n sit-01-api port-forward svc/aip-audit-service 8091:8080)'
         )
         choice(
             name: 'BROWSER',
@@ -35,6 +40,7 @@ pipeline {
     environment {
         // Tests read BASE_URL: the override if given, otherwise the chosen environment's URL
         BASE_URL = "${resolveBaseUrl()}"
+        AUDIT_URL = "${resolveAuditUrl()}"
         PATH = "/Applications/Docker.app/Contents/Resources/bin:/opt/homebrew/bin:/usr/local/bin:${PATH}"
 
         // BrowserStack credentials from Jenkins credential store
@@ -121,6 +127,31 @@ pipeline {
             post {
                 always {
                     archiveArtifacts artifacts: 'api-test-report.html', allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Run Events Tests') {
+            when {
+                expression { params.TEST_SUITE == 'events' }
+            }
+            steps {
+                echo "📨 Running events suite (app ${env.BASE_URL}, audit ${env.AUDIT_URL})..."
+                // The audit service isn't public: on a local cluster it needs its own port-forward
+                sh '''
+                    if [ "$ENVIRONMENT" != "mock" ] && ! curl -s -o /dev/null --max-time 10 "$AUDIT_URL/health"; then
+                        echo "❌ Cannot reach aip-audit-service at $AUDIT_URL."
+                        echo "   For a local cluster, start its port-forward first:"
+                        echo "   kubectl -n $ENVIRONMENT-api port-forward svc/aip-audit-service 8091:8080"
+                        exit 1
+                    fi
+                '''
+                script {
+                    if (params.USE_DOCKER) {
+                        runInDocker('npm run test:events')
+                    } else {
+                        sh 'npm run test:events'
+                    }
                 }
             }
         }
@@ -229,6 +260,19 @@ def runInDocker(String testCommand) {
         docker build -t agentic-qa-demo:${BUILD_NUMBER} .
     '''
     sh "docker run --rm -v \"\${WORKSPACE}\":/app -v /app/node_modules agentic-qa-demo:\${BUILD_NUMBER} sh -c 'npm ci && (node mock-server.js > logs/mock-server.log 2>&1 &) && sleep 3 && ${testCommand}'"
+}
+
+// AUDIT_URL for the events suite: an explicit override wins; the mock serves the audit API itself;
+// SIT environments use SIT_0X_AUDIT_URL if set, otherwise the usual port-forward on 8091
+def resolveAuditUrl() {
+    if (params.AUDIT_URL?.trim()) {
+        return params.AUDIT_URL.trim()
+    }
+    switch (params.ENVIRONMENT) {
+        case 'sit-01': return env.SIT_01_AUDIT_URL?.trim() ?: 'http://localhost:8091'
+        case 'sit-02': return env.SIT_02_AUDIT_URL?.trim() ?: 'http://localhost:8091'
+        default:       return resolveBaseUrl()
+    }
 }
 
 // BASE_URL for the run: an explicit override wins, then the environment's Jenkins variable.
