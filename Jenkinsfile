@@ -7,8 +7,8 @@ pipeline {
     parameters {
         choice(
             name: 'TEST_SUITE',
-            choices: ['smoke', 'regression', 'api', 'events', 'a11y', 'lighthouse', 'all'],
-            description: 'Test suite to run. events = application saved (MongoDB) and decision audited (Kafka); needs persistence on, so mock or sit-01. a11y = accessibility BDD scenarios (axe-core WCAG 2.1 AA, keyboard, focus, reflow). lighthouse = page performance budgets (use against the real web app, e.g. sit-01). all = smoke, regression and api'
+            choices: ['smoke', 'regression', 'api', 'events', 'accessibility', 'lighthouse', 'all'],
+            description: 'Test suite to run. events = application saved (MongoDB) and decision audited (Kafka); needs persistence on, so mock or sit-01. accessibility = accessibility BDD scenarios (axe-core WCAG 2.1 AA, keyboard, focus, reflow). lighthouse = page performance budgets (use against the real web app, e.g. sit-01). all = smoke, regression and api'
         )
         choice(
             name: 'ENVIRONMENT',
@@ -185,19 +185,19 @@ pipeline {
 
         stage('Run Accessibility Tests') {
             when {
-                expression { params.TEST_SUITE == 'a11y' }
+                expression { params.TEST_SUITE == 'accessibility' }
             }
             steps {
                 echo '♿ Running accessibility scenarios (axe-core WCAG 2.1 AA, keyboard, focus, reflow)...'
                 script {
                     if (params.USE_DOCKER) {
-                        runInDocker('npm run test:a11y')
+                        runInDocker('npm run test:accessibility')
                     } else {
                         sh '''
                             if [ "${BROWSER}" = "browserstack" ]; then
-                                BROWSERSTACK_USERNAME="${BROWSERSTACK_USER}" BROWSERSTACK_ACCESS_KEY="${BROWSERSTACK_KEY}" npm run test:bstack:a11y
+                                BROWSERSTACK_USERNAME="${BROWSERSTACK_USER}" BROWSERSTACK_ACCESS_KEY="${BROWSERSTACK_KEY}" npm run test:bstack:accessibility
                             else
-                                npm run test:a11y
+                                npm run test:accessibility
                             fi
                         '''
                     }

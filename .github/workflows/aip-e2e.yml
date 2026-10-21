@@ -52,10 +52,20 @@ jobs:
           exit 1
 
       - name: API tests
-        run: npm run test:api
+        run: |
+          mkdir -p logs
+          set -o pipefail
+          npm run test:api 2>&1 | tee logs/api.log
 
       - name: BDD regression tests
-        run: npm run test:regression
+        run: |
+          set -o pipefail
+          npm run test:regression 2>&1 | tee logs/regression.log
+
+      # Test errors as annotations, so the failure shows on the run and in the CI failure triage comment
+      - name: Report test errors
+        if: failure()
+        run: scripts/report-test-errors.sh logs/*.log
 
       # Page performance budgets on the real web app (Lighthouse CI, Chrome on the runner)
       - name: Lighthouse page performance

@@ -27,7 +27,7 @@ A test framework for a mortgage **Decision-in-Principle (DIP)** journey: BDD UI 
 | BDD regression | `npm run test:regression` | WebdriverIO + Cucumber | Accepted, Referred and Declined journeys |
 | API | `npm run test:api` | Cucumber (no browser) + Ajv | 26 scenarios: decisions per applicant, response contract, validation, error format, malformed JSON, hostile IDs, response time, calculator |
 | Events | `npm run test:events` | Cucumber (no browser) + Ajv | 15 scenarios: application saved, decision event audited exactly once, each outcome audited, hostile IDs on the audit trail |
-| Accessibility | `npm run test:a11y` | WebdriverIO + Cucumber + axe-core | 9 scenarios: WCAG 2.1 AA scans of the form and each result, keyboard-only journey, visible focus, screen reader announcement, reflow at 320px, one main heading |
+| Accessibility | `npm run test:accessibility` | WebdriverIO + Cucumber + axe-core | 9 scenarios: WCAG 2.1 AA scans of the form and each result, keyboard-only journey, visible focus, screen reader announcement, reflow at 320px, one main heading |
 | Page performance | `npm run test:lighthouse` | Lighthouse CI | Budgets on the DIP page: performance, accessibility and best-practice scores, LCP, CLS and TBT (fails the build) |
 | Timing | `npm run test:perf` | WebdriverIO | Quick browser timings of the journey against the mock server |
 | Repeatability | `npm run test:stress` | WebdriverIO | The journey 5 times in a row, with timing variance |
@@ -65,7 +65,7 @@ Run it against the real web app (`BASE_URL=http://localhost:8090 npm run test:li
 | The page fits at 320 CSS pixels without sideways scrolling | 1.4.10 Reflow |
 | The page has one main heading | 1.3.1 (best practice) |
 
-Which impacts fail a scenario is set by `A11Y_IMPACTS` (default `critical,serious`); the full axe results are attached to the Allure report. On BrowserStack (`npm run test:bstack:a11y`) the same scenarios run in Chrome, Firefox and Safari; set `BROWSERSTACK_ACCESSIBILITY=true` to also get BrowserStack Accessibility Testing scans in its dashboard (a separate BrowserStack product). `npm run test:a11y:scan` is a quick standalone axe scan of the empty form.
+Which impacts fail a scenario is set by `A11Y_IMPACTS` (default `critical,serious`); the full axe results are attached to the Allure report. On BrowserStack (`npm run test:bstack:accessibility`) the same scenarios run in Chrome, Firefox and Safari; set `BROWSERSTACK_ACCESSIBILITY=true` to also get BrowserStack Accessibility Testing scans in its dashboard (a separate BrowserStack product). `npm run test:accessibility:scan` is a quick standalone axe scan of the empty form.
 
 Automated checks find part of WCAG only: screen reader behaviour, zoom to 200% and whether content makes sense stay manual checks. The timing checks come from a local mock server and are not a load test.
 
@@ -178,7 +178,7 @@ The [Jenkinsfile](Jenkinsfile) installs dependencies, lints, starts the mock ser
 
 | Parameter | Values | Purpose |
 | --- | --- | --- |
-| `TEST_SUITE` | `smoke`, `regression`, `api`, `events`, `a11y`, `lighthouse`, `all` | Which suite to run (`all` = smoke, regression and api) |
+| `TEST_SUITE` | `smoke`, `regression`, `api`, `events`, `accessibility`, `lighthouse`, `all` | Which suite to run (`all` = smoke, regression and api) |
 | `ENVIRONMENT` | `mock` (default), `sit-01`, `sit-02` | The mock server, or a deployed AIP environment |
 | `BASE_URL` | empty, or a URL | Overrides the environment's URL, e.g. `http://localhost:8090` for a port-forward |
 | `AUDIT_URL` | empty, or a URL | `events` only: the audit service. Empty = the mock for `mock`, `http://localhost:8091` for SIT |
@@ -206,7 +206,7 @@ The Dockerfile sets `CHROME_BIN` and `CHROMEDRIVER_PATH`, and [wdio.conf.js](wdi
 export BROWSERSTACK_USERNAME=...
 export BROWSERSTACK_ACCESS_KEY=...
 npm run test:bstack:smoke          # Chrome, Firefox and Safari
-npm run test:bstack:a11y           # accessibility scenarios on the same browsers
+npm run test:bstack:accessibility           # accessibility scenarios on the same browsers
 npm run test:bstack:regression
 npm run test:compat                # wider matrix defined in wdio.compatibility.conf.js
 ```
