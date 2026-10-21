@@ -25,7 +25,7 @@ When('I fetch the saved application', async function () {
 });
 
 When('I fetch the application {string}', async function (applicationId) {
-  this.response = await this.api('GET', `/api/applications/${applicationId}`);
+  this.response = await this.api('GET', `/api/applications/${encodeURIComponent(applicationId)}`);
 });
 
 When('the decision event is audited', async function () {
@@ -33,7 +33,11 @@ When('the decision event is audited', async function () {
 });
 
 When('I fetch the audit trail for {string}', async function (applicationId) {
-  this.response = await this.audit(`/api/audit/${applicationId}`);
+  this.response = await this.audit(`/api/audit/${encodeURIComponent(applicationId)}`);
+});
+
+When('I fetch the audit trail for ID {}', async function (applicationId) {
+  this.response = await this.audit(`/api/audit/${encodeURIComponent(applicationId)}`);
 });
 
 Then('the response has an application ID', function () {

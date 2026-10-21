@@ -27,10 +27,12 @@ Feature: Decisions saved and audited
   Scenario: Return 404 for an unknown application
     When I fetch the application "AIP-20000101-00000000"
     Then the response status is 404
+    And the response matches the "error" schema
 
   Scenario: Return 400 for an invalid application ID
     When I fetch the application "not-an-id"
     Then the response status is 400
+    And the response matches the "error" schema
 
   Scenario: Audit the decision as an AipDecisionMade event
     Given a decision has been made for the standard applicant
@@ -68,3 +70,18 @@ Feature: Decisions saved and audited
       | loanAmount   | -50000 |
     Then the response status is 400
     And the response has no application ID
+
+  Scenario Outline: Reject a hostile ID on the audit trail (<problem>) without a server error
+    When I fetch the audit trail for ID <id>
+    Then the response status is 400
+    And the response matches the "error" schema
+
+    Examples:
+      | problem        | id               |
+      | NoSQL operator | {"$ne": null}    |
+      | SQL injection  | ' OR '1'='1      |
+
+  Scenario: Never expose server files through path traversal in an audit trail ID
+    When I fetch the audit trail for ID ../../etc/passwd
+    Then the response is not a server error
+    And the response does not contain "root:"

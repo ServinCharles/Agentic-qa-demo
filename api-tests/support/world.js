@@ -3,6 +3,7 @@
 //   BASE_URL          the app (web app or aip-api), e.g. http://localhost:8090   default http://localhost:3000 (mock)
 //   AUDIT_URL         aip-audit-service, e.g. http://localhost:8091              default BASE_URL (the mock serves both)
 //   EVENT_TIMEOUT_MS  how long to wait for an event to be audited                default 15000
+//   MAX_RESPONSE_MS   response time limit for the timing scenarios               default 1000
 const { setWorldConstructor, setDefaultTimeout, World } = require('@cucumber/cucumber');
 const { request } = require('./http');
 const applicants = require('../../test-data/applicants.json');
@@ -11,6 +12,7 @@ const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 const AUDIT_URL = process.env.AUDIT_URL || BASE_URL;
 const EVENT_TIMEOUT_MS = Number(process.env.EVENT_TIMEOUT_MS || 15000);
 const POLL_INTERVAL_MS = 500;
+const MAX_RESPONSE_MS = Number(process.env.MAX_RESPONSE_MS || 1000);
 
 // Long enough for a step that polls for an event, plus a margin
 setDefaultTimeout(EVENT_TIMEOUT_MS + 15000);
@@ -74,4 +76,4 @@ function toDecisionRequest(applicant) {
 
 setWorldConstructor(ApiWorld);
 
-module.exports = { toDecisionRequest, sleep, BASE_URL, AUDIT_URL };
+module.exports = { toDecisionRequest, sleep, BASE_URL, AUDIT_URL, MAX_RESPONSE_MS };

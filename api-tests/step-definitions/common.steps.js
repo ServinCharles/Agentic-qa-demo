@@ -1,7 +1,7 @@
 // Steps shared by the API and events features
 const { When, Then } = require('@cucumber/cucumber');
 const assert = require('node:assert/strict');
-const { toDecisionRequest } = require('../support/world');
+const { toDecisionRequest, MAX_RESPONSE_MS } = require('../support/world');
 const { schemaErrors } = require('../support/schemas');
 
 // Table cells: empty = leave the field out, a number = a number, anything else = text (to test bad input)
@@ -22,12 +22,34 @@ When('I request a decision with:', async function (dataTable) {
   await this.requestDecision(toRequestBody(dataTable));
 });
 
+// The body is sent exactly as written (single quotes in the feature, so it can contain JSON's double quotes)
+When('I send the decision request body {string}', async function (body) {
+  this.response = await this.api('POST', '/api/mortgages/dip/decision', body);
+});
+
 Then('the response status is {int}', function (expected) {
   assert.equal(this.response.status, expected, `Expected ${expected}, got ${this.response.status}: ${this.response.raw}`);
 });
 
 Then('the decision is {string}', function (expected) {
   assert.equal(this.decision?.decision, expected, `Expected ${expected}, got ${JSON.stringify(this.response.body)}`);
+});
+
+Then('the response is not a server error', function () {
+  assert.ok(this.response.status < 500, `Got a server error ${this.response.status}: ${this.response.raw}`);
+});
+
+Then('the response does not contain {string}', function (text) {
+  assert.ok(!this.response.raw.includes(text), `The response contains "${text}": ${this.response.raw.slice(0, 200)}`);
+});
+
+Then('the error message is {string}', function (expected) {
+  assert.equal(this.response.body?.error, expected, `Expected error "${expected}", got ${this.response.raw}`);
+});
+
+Then('the response time is within the limit', function () {
+  assert.ok(this.response.durationMs <= MAX_RESPONSE_MS,
+    `Took ${this.response.durationMs}ms, limit is ${MAX_RESPONSE_MS}ms (MAX_RESPONSE_MS)`);
 });
 
 Then('the response matches the {string} schema', function (schema) {

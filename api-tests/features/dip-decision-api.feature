@@ -32,6 +32,7 @@ Feature: DIP decision API
       | loanAmount          | <loanAmount>          |
       | existingCommitments | <existingCommitments> |
     Then the response status is 400
+    And the response matches the "error" schema
 
     Examples:
       | problem                | annualIncome | loanAmount | existingCommitments |
@@ -54,3 +55,62 @@ Feature: DIP decision API
       | existingCommitments | 200   |
     Then the response status is 200
     And the response matches the "calculator" schema
+
+  # Robustness: malformed bodies, hostile IDs and response times. Every rejection
+  # must be a 4xx with the standard error body, never a 500 or a crash.
+
+  Scenario Outline: Reject a malformed decision request body (<problem>)
+    When I send the decision request body '<body>'
+    Then the response status is 400
+    And the error message is "Invalid JSON"
+    And the response matches the "error" schema
+
+    Examples:
+      | problem           | body                    |
+      | cut-off JSON      | {"annualIncome": 45000, |
+      | plain text        | annual income 45000     |
+      | a JSON array      | [45000, 150000, 0]      |
+      | JSON null         | null                    |
+      | an empty body     |                         |
+
+  Scenario: Reject a malformed borrowing power request body
+    When I send the borrowing power request body '{"annualIncome": 50000'
+    Then the response status is 400
+    And the error message is "Invalid JSON"
+    And the response matches the "error" schema
+
+  Scenario Outline: Reject a hostile application ID (<problem>) without a server error
+    When I fetch the application ID <id>
+    Then the response status is 400
+    And the response matches the "error" schema
+
+    Examples:
+      | problem          | id                        |
+      | NoSQL operator   | {"$ne": null}             |
+      | SQL injection    | ' OR '1'='1               |
+      | script tag       | <script>alert(1)</script> |
+      | lower-case ID    | aip-20261021-abcdef12     |
+
+  # Through the web app, nginx resolves "../" before routing, so the request never reaches aip-api and
+  # the web page is served instead (200). Called directly, aip-api rejects it (400). Either way is safe:
+  # what matters is no server error and no file contents in the response.
+  Scenario: Never expose server files through path traversal in an application ID
+    When I fetch the application ID ../../etc/passwd
+    Then the response is not a server error
+    And the response does not contain "root:"
+
+  Scenario: Reject a very long application ID without a server error
+    When I fetch the application with an ID of 1000 characters
+    Then the response status is 400
+    And the response matches the "error" schema
+
+  Scenario Outline: Respond within the time limit (<endpoint>)
+    When <request>
+    Then the response status is 200
+    And the response time is within the limit
+
+    Examples:
+      | endpoint        | request                                                   |
+      | home page       | I open the home page                                      |
+      | decision        | I request a decision for the standard applicant           |
+      | borrowing power | I calculate borrowing power for the standard applicant    |
