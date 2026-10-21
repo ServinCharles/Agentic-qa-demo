@@ -33,11 +33,12 @@ exports.config = {
   // BrowserStack compatibility testing service
   services: [
     ['browserstack', {
+      // forceLocal is a tunnel option (opts); as a service option it lands in bstack:options and is rejected
       browserstackLocal: true,
-      forceLocal: true,
       accessibility: process.env.BROWSERSTACK_ACCESSIBILITY === 'true',
       accessibilityOptions: { wcagVersion: 'wcag21aa' },
       opts: {
+        forceLocal: true,
         logFile: './logs/browserstack.log'
       }
     }]
