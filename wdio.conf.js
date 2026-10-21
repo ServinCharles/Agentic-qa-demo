@@ -50,7 +50,7 @@ exports.config = {
     ],
 
     cucumberOpts: {
-        require: ['./features/step-definitions/**/*.steps.js'],
+        require: ['./features/support/**/*.js', './features/step-definitions/**/*.steps.js'],
         backtrace: false,
         requireModule: [],
         dryRun: false,

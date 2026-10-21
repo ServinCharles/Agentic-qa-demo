@@ -7,20 +7,20 @@ Given('a new Decision-in-Principle journey has started', async () => {
   await dipJourneyPage.open();
 });
 
-Given('the applicant declares an annual income of £{float},{int}', async (thousands, remainder) => {
-  await dipJourneyPage.enterAnnualIncome(`${thousands}${remainder}`);
+Given('the applicant declares an annual income of {money}', async (amount) => {
+  await dipJourneyPage.enterAnnualIncome(String(amount));
 });
 
 Given('they have no existing credit commitments', async () => {
   await dipJourneyPage.enterMonthlyCommitments('0');
 });
 
-Given('they have monthly credit commitments of £{float},{int}', async (thousands, remainder) => {
-  await dipJourneyPage.enterMonthlyCommitments(`${thousands}${remainder}`);
+Given('they have monthly credit commitments of {money}', async (amount) => {
+  await dipJourneyPage.enterMonthlyCommitments(String(amount));
 });
 
-When('they request a decision for a £{float},{int} loan', async (thousands, remainder) => {
-  await dipJourneyPage.requestDecision(`${thousands}${remainder}`);
+When('they request a decision for a {money} loan', async (amount) => {
+  await dipJourneyPage.requestDecision(String(amount));
 });
 
 Then('the decision is {string}', async (expectedDecision) => {
