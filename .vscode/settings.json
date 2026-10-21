@@ -1,0 +1,15 @@
+{
+  // Cucumber extension (CucumberOpen.cucumber-official): where the feature files and step definitions are,
+  // so steps aren't shown as undefined. UI features run through WebdriverIO, API and events through cucumber-js.
+  "cucumber.features": [
+    "features/**/*.feature",
+    "api-tests/features/**/*.feature",
+    "AI-generated-features/**/*.feature"
+  ],
+  "cucumber.glue": [
+    "features/support/**/*.js",
+    "features/step-definitions/**/*.js",
+    "api-tests/support/**/*.js",
+    "api-tests/step-definitions/**/*.js"
+  ]
+}
