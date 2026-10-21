@@ -10,7 +10,7 @@ BDD test automation framework for a retail banking web application
 
 - WebdriverIO 9 + Cucumber BDD (JavaScript)
 - Page Object Model under `features/pages/` and `features/Locators/`
-- Feature files under `features/`, step definitions under `features/step-definitions/`
+- Feature files under `features/` (UI) and `api-tests/features/` (API and events), step definitions next to them in `step-definitions/`
 - CI: Jenkins (Jenkinsfile in repo root)
 - Cross-browser: BrowserStack (config in `wdio.browserstack.conf.js`)
 
@@ -59,7 +59,7 @@ features/step-definitions/ Cucumber step definitions
 features/pages/                    Page Object Model classes
 features/Locators/                 Selector files used by pages
 test-data/                 Synthetic test data (JSON)
-api-test.js, events-test.js API and events suites (Node.js, JUnit XML to reports/)
+api-tests/                 API and events BDD: Cucumber without a browser (profiles in cucumber.js), JSON schemas in support/
 .claude/                   Agent configuration (skills, hooks, subagents)
 wdio.conf.js               Local WebdriverIO config
 Jenkinsfile                CI pipeline

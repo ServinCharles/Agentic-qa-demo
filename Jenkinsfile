@@ -126,7 +126,7 @@ pipeline {
             }
             post {
                 always {
-                    archiveArtifacts artifacts: 'api-test-report.html', allowEmptyArchive: true
+                    archiveArtifacts artifacts: 'reports/api-tests.html', allowEmptyArchive: true
                 }
             }
         }
@@ -152,6 +152,11 @@ pipeline {
                     } else {
                         sh 'npm run test:events'
                     }
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'reports/events-tests.html', allowEmptyArchive: true
                 }
             }
         }
@@ -218,7 +223,7 @@ pipeline {
             // Archive Allure results
             archiveArtifacts artifacts: 'allure-results/**', allowEmptyArchive: true
 
-            // The api and events suites write JUnit XML (Allure reads it); the BDD suites write Allure results directly
+            // The api and events features (Cucumber) write JUnit XML (Allure reads it); the UI features write Allure results directly
             sh 'mkdir -p allure-results && cp reports/*.xml allure-results/ 2>/dev/null || true'
 
             // Generate the HTML report that publishHTML serves
