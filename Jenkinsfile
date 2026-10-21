@@ -7,8 +7,8 @@ pipeline {
     parameters {
         choice(
             name: 'TEST_SUITE',
-            choices: ['smoke', 'regression', 'api', 'events', 'lighthouse', 'all'],
-            description: 'Test suite to run. events = application saved (MongoDB) and decision audited (Kafka); needs persistence on, so mock or sit-01. lighthouse = page performance budgets (use against the real web app, e.g. sit-01). all = smoke, regression and api'
+            choices: ['smoke', 'regression', 'api', 'events', 'accessibility', 'lighthouse', 'all'],
+            description: 'Test suite to run. events = application saved (MongoDB) and decision audited (Kafka); needs persistence on, so mock or sit-01. accessibility = accessibility BDD scenarios (axe-core WCAG 2.1 AA, keyboard, focus, reflow). lighthouse = page performance budgets (use against the real web app, e.g. sit-01). all = smoke, regression and api'
         )
         choice(
             name: 'ENVIRONMENT',
@@ -30,6 +30,11 @@ pipeline {
             choices: ['local', 'browserstack'],
             description: 'Browser environment'
         )
+        choice(
+            name: 'BROWSERSTACK_ACCESSIBILITY',
+            choices: ['off', 'on'],
+            description: 'BROWSER=browserstack only: also run BrowserStack Accessibility Testing scans (results in the BrowserStack dashboard; needs the feature on your BrowserStack plan)'
+        )
         booleanParam(
             name: 'USE_DOCKER',
             defaultValue: false,
@@ -47,6 +52,7 @@ pipeline {
         BROWSERSTACK_USER = credentials('browserstack-user')
         BROWSERSTACK_KEY = credentials('browserstack-key')
         BROWSERSTACK_LOCAL_IDENTIFIER = "jenkins-${BUILD_NUMBER}"
+        BROWSERSTACK_ACCESSIBILITY = "${params.BROWSERSTACK_ACCESSIBILITY == 'on'}"
         
         // Test reporting
         REPORTS_DIR = "${WORKSPACE}/reports"
@@ -173,6 +179,28 @@ pipeline {
             post {
                 always {
                     archiveArtifacts artifacts: 'reports/lighthouse/**', allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Run Accessibility Tests') {
+            when {
+                expression { params.TEST_SUITE == 'accessibility' }
+            }
+            steps {
+                echo '♿ Running accessibility scenarios (axe-core WCAG 2.1 AA, keyboard, focus, reflow)...'
+                script {
+                    if (params.USE_DOCKER) {
+                        runInDocker('npm run test:accessibility')
+                    } else {
+                        sh '''
+                            if [ "${BROWSER}" = "browserstack" ]; then
+                                BROWSERSTACK_USERNAME="${BROWSERSTACK_USER}" BROWSERSTACK_ACCESS_KEY="${BROWSERSTACK_KEY}" npm run test:bstack:accessibility
+                            else
+                                npm run test:accessibility
+                            fi
+                        '''
+                    }
                 }
             }
         }

@@ -53,7 +53,7 @@ const tests = [
   { name: 'API Tests', cmd: 'npm', args: ['run', 'test:api'], type: 'api' },
   { name: 'Performance Tests', cmd: 'npm', args: ['run', 'test:perf'], type: 'performance' },
   { name: 'Stress Tests', cmd: 'npm', args: ['run', 'test:stress'], type: 'stress' },
-  { name: 'Accessibility Tests', cmd: 'npm', args: ['run', 'test:a11y'], type: 'accessibility' }
+  { name: 'Accessibility Tests', cmd: 'npm', args: ['run', 'test:accessibility'], type: 'accessibility' }
 ];
 
 const results = {
