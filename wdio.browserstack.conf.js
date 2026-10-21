@@ -10,8 +10,10 @@ exports.config = {
   // BrowserStack settings
   services: [
     ['browserstack', {
+      // The tunnel lets BrowserStack reach localhost (the mock or a port-forward). forceLocal is a
+      // tunnel option, so it goes in opts; as a service option it lands in bstack:options and is rejected.
       browserstackLocal: true,
-      forceLocal: true,
+      opts: { forceLocal: true },
       // BrowserStack Accessibility Testing: scans pages during the run and reports them in the BrowserStack
       // dashboard. Off unless BROWSERSTACK_ACCESSIBILITY=true (it's a separate BrowserStack product).
       accessibility: process.env.BROWSERSTACK_ACCESSIBILITY === 'true',
