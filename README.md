@@ -1,570 +1,290 @@
-# 🏦 Agentic QA Demo — Banking BDD Test Automation Framework
+# Agentic QA Demo: test automation for a mortgage Decision-in-Principle journey
 
-A comprehensive test automation suite for the **Mortgage Decision-in-Principle (DIP)** banking application. Combines **BDD (Behavior-Driven Development)**, **API testing**, **performance testing**, **accessibility compliance**, and **cross-browser compatibility** into a single, production-ready framework.
+[![Smoke tests](https://github.com/ServinCharles/Agentic-qa-demo/actions/workflows/smoke-tests.yml/badge.svg)](https://github.com/ServinCharles/Agentic-qa-demo/actions/workflows/smoke-tests.yml)
+[![AIP microservices E2E](https://github.com/ServinCharles/Agentic-qa-demo/actions/workflows/aip-e2e.yml/badge.svg)](https://github.com/ServinCharles/Agentic-qa-demo/actions/workflows/aip-e2e.yml)
 
-**Quick Facts:**
-- ✅ 5/5 test suites passing (100% pass rate)
-- 🌐 Cross-browser tested (10 browser configurations)
-- ♿ WCAG 2.1 Level AA accessibility compliant
-- 📊 Performance benchmarked (54ms page load = Grade A+)
-- 🔒 Fully regulated (no hardcoded PII/credentials)
-- 🚀 Mock server auto-starts with test runner
+> **Portfolio demo project.** Built for learning and to show my test automation work. Synthetic test data only; this is not a production or bank system.
 
----
+A test framework for a mortgage **Decision-in-Principle (DIP)** journey: BDD UI tests, API and event tests, accessibility checks, timing checks and cross-browser runs. It tests a local mock server, and a set of microservices (the **AIP platform**) running on Kubernetes, through GitHub Actions and Jenkins.
 
-## 📋 Table of Contents
+![AIP platform architecture and test automation](docs/images/aip-architecture.png)
 
-1. [Layer Structure](#layer-structure)
-2. [What's Included](#whats-included)
-3. [Quick Start](#quick-start)
-4. [Installation](#installation)
-5. [Running Tests](#running-tests)
-   - [Docker](#docker)
-   - [Jenkins](#jenkins)
-6. [Test Types](#test-types)
-7. [Project Structure](#project-structure)
-8. [Configuration](#configuration)
-9. [Jenkins Run](#jenkins-run)
-10. [Architecture Rules](#architecture-rules)
-11. [Troubleshooting](#troubleshooting)
+## What this project demonstrates
 
----
+- **BDD with Page Object Model:** WebdriverIO 9 + Cucumber, locators kept out of step definitions
+- **API and contract checks** on the DIP decision endpoint, with synthetic applicants from `test-data/`
+- **Event-driven testing:** a decision is saved to MongoDB, published to Kafka and recorded by an audit service; the suite polls for the event instead of using fixed sleeps
+- **Environment-aware CI:** the same suites run against `mock`, `sit-01` or `sit-02` (GitHub Actions and Jenkins), with a fail-fast reachability check
+- **Real defects found by the tests:** on sit-01 the events suite failed 0/10 and led to two fixes in the platform: pods running out of memory (OOMKilled), and images built for the wrong CPU architecture
+- **Cross-browser runs** on BrowserStack, **accessibility checks** with axe-core, **Allure and JUnit reports**
+- **AI-assisted workflow:** written rules and agent instructions for Claude Code (`CLAUDE.md`, `.claude/`), plus a ticket-to-Gherkin generator that writes draft scenarios for human review
 
-## 🗂️ Layer Structure
+## Test suites
 
-This framework is built on the **Agentic QA Development Kit** — a layered architecture where each layer has a distinct responsibility:
+| Suite | Command | Tooling | What it checks |
+| --- | --- | --- | --- |
+| BDD smoke | `npm run test:smoke` | WebdriverIO + Cucumber | `@smoke` scenarios of the DIP journey |
+| BDD regression | `npm run test:regression` | WebdriverIO + Cucumber | Accepted, Referred and Declined journeys |
+| API | `npm run test:api` | Node.js HTTP client | 11 checks: decisions, response contract, validation, edge cases, calculator |
+| Events | `npm run test:events` | Node.js HTTP client | 10 checks: application saved, decision event audited exactly once |
+| Accessibility | `npm run test:a11y` | axe-core | Automated WCAG 2.1 AA rules on the DIP page |
+| Timing | `npm run test:perf` | WebdriverIO | Page load and interaction timings against the mock server |
+| Repeatability | `npm run test:stress` | WebdriverIO | The journey 5 times in a row, with timing variance |
+| Cross-browser | `npm run test:bstack` | BrowserStack | Chrome, Firefox and Safari |
 
-```
-┌─────────────────────────────────────────────────────────┐
-│  Layer 5 — Reporting Layer                              │
-│  allure-report-viewer.js · test-report.html             │
-│  Allure results · HTML summary reports                  │
-├─────────────────────────────────────────────────────────┤
-│  Layer 4 — Execution & Orchestration Layer              │
-│  run-all-tests.js · npm scripts · Jenkinsfile           │
-│  Auto-starts mock server · runs all suites in sequence  │
-├─────────────────────────────────────────────────────────┤
-│  Layer 3 — Test Implementation Layer                    │
-│  features/ · step-definitions/ · pages/              │
-│  api-test.js · perf-test.js · a11y-test.js              │
-├─────────────────────────────────────────────────────────┤
-│  Layer 2 — Test Infrastructure Layer                    │
-│  mock-server.js (port 3000) · wdio.conf.js              │
-│  wdio.browserstack.conf.js · wdio.compatibility.conf.js │
-├─────────────────────────────────────────────────────────┤
-│  Layer 1 — Memory & Constitution Layer                  │
-│  README.md · CLAUDE.md · test-data/applicants.json      │
-│  Always loaded · defines rules, conventions & test data │
-└─────────────────────────────────────────────────────────┘
-```
+The api and events suites write JUnit XML to `reports/`, which Jenkins shows as test results and the Allure report includes. The API suite also writes `api-test-report.html`.
 
-| Layer | Name | Purpose |
-|-------|------|---------|
-| **1** | Memory & Constitution | Agent rules, architecture conventions, synthetic test data |
-| **2** | Test Infrastructure | Mock HTTP server, WebdriverIO configs, browser capabilities |
-| **3** | Test Implementation | Feature files, step definitions, page objects, test scripts |
-| **4** | Execution & Orchestration | Master test runner, npm scripts, CI/CD pipeline |
-| **5** | Reporting | Allure reports, HTML summaries, console output |
+The accessibility and timing checks are automated signals, not a compliance audit or a load test: axe-core finds a subset of WCAG issues, and the timings come from a local mock server.
 
----
+## Quick start
 
-## 📦 What's Included
+Needs Node.js 20+ and Chrome.
 
-### Test Capabilities
-- **BDD Functional Tests** — Gherkin scenarios for DIP journey (smoke + regression)
-- **API Tests** — 11 HTTP tests covering decisions, validation, response contracts, and calculators
-- **Performance Tests** — Single-pass metrics (page load, form interaction, visibility)
-- **Stress Tests** — 5-iteration load testing (reliability, variance analysis)
-- **Accessibility Audits** — WCAG 2.1 automated compliance checking
-- **Cross-Browser Testing** — 10 browser configurations via BrowserStack
-
-### Key Features
-- **Page Object Model (POM)** — No selectors in step definitions; all locators centralized
-- **Mock HTTP Server** — Auto-starts with test runner; serves form + API endpoints
-- **Allure Reporting** — Test result aggregation and visualization
-- **Jenkins CI/CD** — Jenkinsfile for automated execution
-- **Environment Variables** — Switch between localhost, staging, production
-- **Parallel Execution** — 5 concurrent browser instances for faster runs
-
----
-
-## 🚀 Quick Start
-
-### 1. Install Dependencies
 ```bash
 npm install
+node mock-server.js &        # the mock DIP app on http://localhost:3000
+npm run test:smoke
+npm run test:api
 ```
 
-### 2. Run All Tests
+Or run the smoke, API, timing, repeatability and accessibility suites in one go (it starts and stops the mock server itself):
+
 ```bash
 node run-all-tests.js
 ```
-> The mock server starts automatically — no manual setup needed.
 
-### 3. View Results
-```bash
-npm run report:view
-# Opens Allure report at http://localhost:5555
-```
+Allure report: `npm run test:smoke:report`, or `npm run report:view` after a run (serves it on http://localhost:5555).
 
----
+## Testing the AIP microservices
 
-## 💾 Installation
+`mock-server.js` is the default target. The same suites also run against the **AIP platform**, deployed by the [AIP Deployment Pipeline](https://github.com/ServinCharles/aip-deployment-pipeline). It has the same routes, `data-testid`s and API contract, so only `BASE_URL` changes.
 
-### Prerequisites
-- **Node.js** v20+
-- **npm** v9+
-- **Chrome** browser installed
-
-### Steps
-```bash
-# 1. Install dependencies
-npm install
-
-# 2. Verify setup
-npm run lint
-# Should complete with no errors
-```
-
----
-
-## 🧪 Running Tests
-
-### GitHub Actions
-
-The [Smoke tests workflow](.github/workflows/smoke-tests.yml) runs the smoke suite on every push and after a pull request is merged into `main`. It installs Node.js dependencies, starts the local mock server, runs Chrome headlessly, and uploads Allure results and mock-server logs as workflow artifacts.
-
-### Run Everything (Recommended)
-```bash
-node run-all-tests.js
-```
-Auto-starts the mock server, runs all 5 test suites, stops the server, and opens `test-report.html`.
-
-### Run Individual Suites
-
-| Command | Suite | Duration |
-|---------|-------|----------|
-| `npm run test:smoke` | BDD smoke tests | ~10s |
-| `npm run test:regression` | BDD full regression | ~1–2 min |
-| `npm run test:api` | API tests (11 tests; writes `api-test-report.html`) | ~1s |
-| `npm run test:perf` | Performance metrics | ~3s |
-| `npm run test:stress` | 5-iteration stress test | ~15s |
-| `npm run test:a11y` | WCAG 2.1 accessibility | ~4s |
-
-> **Note:** `test:smoke` through `test:a11y` require the mock server to be running.  
-> Start it manually with `node mock-server.js` or use `node run-all-tests.js` which handles this automatically.
-
-### Run with Allure Report
-```bash
-npm run test:smoke:report       # Smoke + Allure report
-npm run test:regression:report  # Regression + Allure report
-```
-
-The API suite generates `api-test-report.html` and opens it in your browser when run from an interactive local terminal. In CI or a non-interactive terminal, it prints the report path instead.
-
-### Cross-Browser (BrowserStack)
-```bash
-export BROWSERSTACK_USERNAME=your_username
-export BROWSERSTACK_ACCESS_KEY=your_key
-
-npm run test:bstack:smoke       # Smoke on Chrome/Firefox/Safari
-npm run test:bstack:regression  # Regression on 3 browsers
-npm run test:compat             # 10-browser compatibility matrix
-npm run test:compat:full        # Full suite on all 10 browsers
-```
-
-### Docker
-Runs the suite in a container with headless Chromium, so no local Chrome is needed.
-```bash
-brew install docker colima          # macOS, one-off
-colima start --cpu 2 --memory 4     # after a restart: brew services start colima
-
-docker build -t agentic-qa-demo .
-docker run --rm -v "$PWD":/app -v /app/node_modules agentic-qa-demo \
-  sh -c "npm ci && (node mock-server.js &) && sleep 3 && npm run test:smoke"
-```
-The [Dockerfile](Dockerfile) sets `CHROME_BIN` and `CHROMEDRIVER_PATH`; [wdio.conf.js](wdio.conf.js) then switches Chrome to headless (`--no-sandbox`). Without them, local runs are unchanged.
-
-### Jenkins
-The [Jenkinsfile](Jenkinsfile) pipeline: install, lint, start mock server, smoke, regression, then archive Allure/JUnit results. On macOS with Docker Desktop, the pipeline includes Docker Desktop's helper directory in `PATH` so Docker registry authentication works from Jenkins.
-
-- **Local Jenkins:** `brew install jenkins-lts && brew services start jenkins-lts`, then open http://localhost:8080.
-- **Job:** a Pipeline job using "Pipeline script from SCM" (this repo, branch `main`, script path `Jenkinsfile`).
-- **Requirements:** plugins Pipeline, NodeJS, Credentials Binding, JUnit, HTML Publisher and Allure; a NodeJS tool named `NodeJS`; credentials `browserstack-user` and `browserstack-key`.
-- **Build with Parameters:**
-
-| Parameter | Values | Purpose |
-|-----------|--------|---------|
-| `TEST_SUITE` | `smoke`, `regression`, `api`, `events`, `all` | Which pack to run (`all` = smoke, regression and api) |
-| `ENVIRONMENT` | `mock` (default), `sit-01`, `sit-02` | Where to run: the local mock server, or a deployed AIP environment |
-| `BASE_URL` | empty, or a URL | Optional override of the environment's URL, e.g. `http://localhost:8090` |
-| `AUDIT_URL` | empty, or a URL | `events` suite only: aip-audit-service URL. Empty = the mock for `mock`, `http://localhost:8091` for SIT |
-| `BROWSER` | `local`, `browserstack` | Local Chrome or BrowserStack |
-| `USE_DOCKER` | `false` (default), `true` | Build the Dockerfile image and run tests in a container |
-
-`USE_DOCKER` needs Docker running on the Jenkins machine (on macOS: Colima, then restart Jenkins so `docker` is on its `PATH`).
-
----
-
-## ☁️ App Under Test: AIP Microservices on AWS
-
-`mock-server.js` stays the default for quick local runs (port 3000, used by `node run-all-tests.js`). The framework also tests a real **Agreement in Principle (AIP)** app made of two microservices, each in its own repo and deployed to Amazon EKS by the [AIP Deployment Pipeline](https://github.com/ServinCharles/aip-deployment-pipeline) (sit-01 and sit-02, each with a `-dip` frontend and `-api` backend namespace):
-
-| Repo | Microservice | Tech |
+| Repo | Service | Tech |
 | --- | --- | --- |
-| [aip-mortgage-api](https://github.com/ServinCharles/aip-mortgage-api) | `aip-api` | .NET 8 API |
-| [aip-webapp](https://github.com/ServinCharles/aip-webapp) | `aip-webapp` | React on nginx, public via AWS load balancer |
+| [aip-webapp](https://github.com/ServinCharles/aip-webapp) | `aip-webapp` | React on nginx |
+| [aip-mortgage-api](https://github.com/ServinCharles/aip-mortgage-api) | `aip-api` | .NET 8 API, saves applications to MongoDB, publishes decision events to Kafka |
+| [aip-audit-service](https://github.com/ServinCharles/aip-audit-service) | `aip-audit-service` | .NET 8 Kafka consumer, keeps the audit trail in MongoDB |
+| [aip-chat-api](https://github.com/ServinCharles/aip-chat-api) | `aip-chat-api` | Intent chatbot |
 
-After every deploy, the AIP Deployment Pipeline runs this framework's Jenkins job with `BASE_URL` set to the environment's URL (`TEST_SUITE=api` for an API deploy, `smoke` for a web app deploy).
+The environments run on a local Kubernetes cluster (k3s on colima): **sit-01** with persistence on, **sit-02** with persistence off. Terraform for AWS (ECR and EKS) is in the deployment repo. After a deploy, the deployment pipeline can run this framework's Jenkins job against the new version (`api` for an API deploy, `events` for the audit service, `smoke` otherwise).
 
-Same routes, `data-testid`s and API contract as the mock server, so every suite runs unchanged. Only `BASE_URL` changes:
+### With Docker Compose
 
-```
-# Locally (clone both app repos next to this one), on port 8090 (3000 is the mock server, 8080 is Jenkins)
+```bash
+# Clone the app repos next to this one, then:
 docker compose up --build -d
 BASE_URL=http://localhost:8090 npm run test:api
 BASE_URL=http://localhost:8090 npm run test:regression
-docker compose stop aip-api        # code coverage of the .NET API -> coverage/aip-api.e2e.cobertura.xml
-
-# Against AWS (URL printed by the AIP Deployment Pipeline)
-BASE_URL=http://<load-balancer> npm run test:smoke
+docker compose stop aip-api        # writes .NET code coverage to coverage/aip-api.e2e.cobertura.xml
 ```
 
-### Testing sit-01 / sit-02 on a local cluster (colima)
+Port 8090 is used because 3000 is the mock server and 8080 is Jenkins.
 
-On a local cluster the web app's load balancer address (e.g. `192.168.5.1`) only exists inside the colima VM, so the tests reach the app through a `kubectl port-forward` on `http://localhost:8090`.
+### On the local cluster (sit-01 / sit-02)
 
-1. In a **separate terminal**, start the port-forward and leave it open while the tests run:
-   ```
-   kubectl -n sit-01-dip port-forward svc/aip-webapp 8090:80
-   ```
-   It prints `Forwarding from 127.0.0.1:8090 -> 8080` and then waits. For sit-02 use `sit-02-dip`.
-2. In another terminal, check the app is reachable:
-   ```
-   curl http://localhost:8090/healthz
-   ```
-   It should print `ok`.
-3. In Jenkins, **Build with Parameters**: `ENVIRONMENT=sit-01`, `TEST_SUITE=smoke` (or `api`, `regression`), `BROWSER=local`, `BASE_URL` empty.
+Inside the cluster the services aren't reachable from your Mac, so the tests go through `kubectl port-forward`. Start each one in its own terminal and leave it open:
 
-A port-forward is tied to one pod, so it stops whenever aip-webapp is redeployed. Restart it after every web app deploy, or use a loop that reconnects by itself:
-
+```bash
+kubectl -n sit-01-dip port-forward svc/aip-webapp 8090:80               # web app and API
+kubectl -n sit-01-api port-forward svc/aip-audit-service 8091:8080      # audit service (events suite)
+curl http://localhost:8090/healthz                                       # prints ok
 ```
-while true; do kubectl -n sit-01-dip port-forward svc/aip-webapp 8090:80; sleep 2; done
+
+Then run a suite, for example:
+
+```bash
+BASE_URL=http://localhost:8090 npm run test:smoke
+BASE_URL=http://localhost:8090 AUDIT_URL=http://localhost:8091 npm run test:events
 ```
+
+For sit-02 use the `sit-02-dip` and `sit-02-api` namespaces. A port-forward is tied to one pod, so restart it after every redeploy of that service.
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
-| `net::ERR_CONNECTION_REFUSED` or `curl: (7) Failed to connect to localhost port 8090` | The port-forward isn't running | Start it (step 1) |
-| `address already in use` when starting the port-forward | Something else is on 8090 | `lsof -i :8090` to find it |
-| kubectl `connection refused` or context errors | kubectl isn't pointing at colima | `kubectl config use-context colima` |
+| `ERR_CONNECTION_REFUSED`, or `curl: (7) Failed to connect to localhost port 8090` | The port-forward isn't running | Start it |
+| `address already in use` | An old port-forward still holds the port | `lsof -nP -iTCP:8090 -sTCP:LISTEN`, then `kill` that PID |
+| `502 Bad Gateway` from nginx | The web app is up but aip-api isn't | `kubectl get pods -n sit-01-api`, then check its logs |
 
-### Events suite: application saved and decision audited
+### Events suite
 
-`events-test.js` (`npm run test:events`) proves the event-driven part of the platform: aip-api saves each application to MongoDB and publishes an `AipDecisionMade` event to Kafka, and aip-audit-service records it.
+`events-test.js` checks the event-driven flow: aip-api saves each application and publishes an `AipDecisionMade` event to Kafka, and aip-audit-service records it.
 
 | Test | Checks |
 | --- | --- |
 | Application ID | Every decision returns its own `applicationId` (`AIP-yyyyMMdd-XXXXXXXX`) |
 | Application saved | `GET /api/applications/{id}` returns the same income, commitments, loan and decision |
-| Not found / invalid | Unknown ID gives 404, a malformed ID gives 400 |
-| Event audited | Polls `GET /api/audit/{id}` until the event appears (no fixed sleeps), then checks the contract: `eventType`, `schemaVersion`, `decision`, no income in the event |
+| Not found / invalid | An unknown ID gives 404, a malformed ID gives 400 |
+| Event audited | Polls `GET /api/audit/{id}` until the event appears, then checks the contract: `eventType`, `schemaVersion`, `decision`, and no income in the event |
 | Exactly once | Still one audited event a couple of seconds later |
 | All outcomes | Accepted, Referred and Declined are each audited with the right decision |
-| Rejected request | A 400 response has no `applicationId` |
+| Rejected request | A rejected request gets no `applicationId`, so nothing is saved or audited |
 
-Results go to `reports/events-tests.xml` (JUnit, shown in Jenkins). Duplicate delivery, the dead-letter topic and restart catch-up need direct Kafka access, so they're tested in aip-audit-service's own pipeline.
+It needs persistence switched on, so run it against `mock` or `sit-01`. Duplicate delivery, the dead-letter topic and restart catch-up need direct access to Kafka, so aip-audit-service tests those in its own pipeline.
+
+## CI/CD
+
+### GitHub Actions
+
+| Workflow | When | What |
+| --- | --- | --- |
+| [Smoke tests](.github/workflows/smoke-tests.yml) | Every push, and after a merge to `main` | Starts the mock server, runs the smoke suite in headless Chrome, uploads Allure results |
+| [AIP microservices E2E](.github/workflows/aip-e2e.yml) | Every push and pull request | Builds aip-api and aip-webapp from their repos, runs the API and BDD suites against them, uploads .NET code coverage |
+| CI failure triage | When either workflow fails | Comments the failed steps on the pull request (or opens an issue) and requests a human review; it never pushes or merges |
+
+`main` is protected: changes go through a pull request, and the CI checks must pass before merging.
+
+### Jenkins
+
+The [Jenkinsfile](Jenkinsfile) installs dependencies, lints, starts the mock server when needed, runs the chosen suite, and publishes JUnit results and the Allure report.
+
+- **Local Jenkins:** `brew install jenkins-lts && brew services start jenkins-lts`, then open http://localhost:8080.
+- **Job:** Pipeline job, "Pipeline script from SCM", this repo, branch `main`, script path `Jenkinsfile`.
+- **Needs:** plugins Pipeline, NodeJS, Credentials Binding, JUnit, HTML Publisher and Allure; a NodeJS tool named `NodeJS`; credentials `browserstack-user` and `browserstack-key`.
+
+**Build with Parameters:**
+
+| Parameter | Values | Purpose |
+| --- | --- | --- |
+| `TEST_SUITE` | `smoke`, `regression`, `api`, `events`, `all` | Which suite to run (`all` = smoke, regression and api) |
+| `ENVIRONMENT` | `mock` (default), `sit-01`, `sit-02` | The mock server, or a deployed AIP environment |
+| `BASE_URL` | empty, or a URL | Overrides the environment's URL, e.g. `http://localhost:8090` for a port-forward |
+| `AUDIT_URL` | empty, or a URL | `events` only: the audit service. Empty = the mock for `mock`, `http://localhost:8091` for SIT |
+| `BROWSER` | `local`, `browserstack` | Local Chrome or BrowserStack |
+| `USE_DOCKER` | `false` (default), `true` | Run the tests in the Docker image from the [Dockerfile](Dockerfile) |
+
+For `sit-01` and `sit-02`, set `BASE_URL` (for example `http://localhost:8090`), or define the Jenkins variables `SIT_01_URL` and `SIT_02_URL`.
+
+### Docker
+
+Runs the tests in a container with headless Chromium, so no local Chrome is needed:
 
 ```bash
-# Against the mock (it simulates the saved applications and the audit trail)
-node mock-server.js &
-npm run test:events
-
-# Against sit-01: the web app and the audit service each need a port-forward
-kubectl -n sit-01-dip port-forward svc/aip-webapp 8090:80 &
-kubectl -n sit-01-api port-forward svc/aip-audit-service 8091:8080 &
-BASE_URL=http://localhost:8090 AUDIT_URL=http://localhost:8091 npm run test:events
+docker build -t agentic-qa-demo .
+docker run --rm -v "$PWD":/app -v /app/node_modules agentic-qa-demo \
+  sh -c "npm ci && (node mock-server.js &) && sleep 3 && npm run test:smoke"
 ```
 
-The suite needs persistence switched on, so run it against `mock` or `sit-01` (sit-02 has it off until sit-01 is proven).
+The Dockerfile sets `CHROME_BIN` and `CHROMEDRIVER_PATH`, and [wdio.conf.js](wdio.conf.js) then runs Chrome headless.
 
-The **AIP microservices E2E** workflow checks out both app repos, builds them, runs the API and BDD suites and uploads the coverage report.
+## Cross-browser (BrowserStack)
 
----
-
-## 🔄 Test Types
-
-### 1. BDD Functional Tests (`features/features/dip-eligibility.feature`)
-
-Three core DIP scenarios:
-
-| Scenario | Income | Loan | Commitments | Decision |
-|----------|--------|------|-------------|----------|
-| Happy path | £45,000 | £150,000 | None | ✅ Accepted |
-| High LTV | £30,000 | £200,000 | None | ⚠️ Referred |
-| High debt | £45,000 | £150,000 | £1,800/mo | ❌ Declined |
-
-### 2. API Tests (`api-test.js`)
-
-11 tests covering:
-- DIP decision endpoint (Accepted / Referred / Declined)
-- DIP decision response contract (content type, required fields, types, and decision values)
-- Input validation (missing fields, invalid types, negative values)
-- Edge cases (zero income, boundary LTV)
-- Affordability calculator endpoint
-
-The standard, referred, and declined decision scenarios load their synthetic applicant data from `test-data/applicants.json`.
-
-### 3. Performance Tests (`perf-test.js`)
-
-| Metric | Result | Grade |
-|--------|--------|-------|
-| Page load | 54ms | A+ |
-| Form input | 75ms | A |
-| Button click | 31ms | A+ |
-| Element check | 8ms | A+ |
-
-### 4. Stress Tests (`perf-stress-test.js`)
-
-- 5 iterations of the full workflow
-- P50: 201ms · P95: 215ms · P99: 215ms
-- Standard deviation: 11.8ms (CV: 5.9% — very stable)
-
-### 5. Accessibility Tests (`a11y-test.js`)
-
-- WCAG 2.1 Level AA — 0 violations
-- Color contrast, form labels, keyboard navigation
-
-### 6. Cross-Browser Compatibility
-
-10 browser configurations via BrowserStack:
-- Chrome (latest + ESR) — Windows 11/10
-- Firefox (latest + ESR) — Windows 11
-- Safari (latest) — macOS Ventura/Sonoma
-- Edge (latest) — Windows 11
-- iPhone 15 (Safari) + Pixel 8 (Chrome) — mobile
-
----
-
-## 📁 Project Structure
-
-```
-agentic-qa-demo/
-│
-├── README.md                          # This file (Layer 1)
-├── CLAUDE.md                          # Agent constitution (Layer 1)
-├── package.json                       # Dependencies + npm scripts
-├── Jenkinsfile                        # CI/CD pipeline (Layer 4)
-│
-├── mock-server.js                     # Local HTTP server, port 3000 (Layer 2)
-├── wdio.conf.js                       # WebdriverIO local config (Layer 2)
-├── wdio.browserstack.conf.js          # BrowserStack 3-browser config (Layer 2)
-├── wdio.compatibility.conf.js         # 10-browser compatibility matrix (Layer 2)
-│
-├── features/                          # BDD Gherkin feature files (Layer 3)
-│   ├── dip-eligibility.feature
-│   └── step-definitions/
-│       └── dip-eligibility.steps.js
-│
-├── pages/ + Locators/                 # Page Object Model (Layer 3)
-│   ├── dipJourney.page.js
-│   └── dipDecision.page.js
-│
-├── test-data/                         # Synthetic test fixtures (Layer 1)
-│   └── applicants.json
-│
-├── api-test.js                        # API test suite (Layer 3)
-├── perf-test.js                       # Performance tests (Layer 3)
-├── perf-stress-test.js                # Stress/load tests (Layer 3)
-├── a11y-test.js                       # Accessibility tests (Layer 3)
-│
-├── run-all-tests.js                   # Master test runner (Layer 4)
-├── allure-report-viewer.js            # Report server, port 5555 (Layer 5)
-│
-├── .claude/                           # Agent Development Kit (Layer 1)
-│   ├── skills/                        # Reusable workflows
-│   │   ├── write-feature.md
-│   │   ├── write-page-object.md
-│   │   ├── write-step-definitions.md
-│   │   └── generate-from-jira-ticket.md
-│   ├── hooks/                         # Automated checks
-│   │   ├── pre-commit.md
-│   │   └── post-test.md
-│   ├── agents/                        # Specialized agents
-│   │   ├── test-writer.md
-│   │   ├── bug-triage.md
-│   │   └── regression-prevention.md
-│   └── README.md                      # Agent kit documentation
-│
-└── TEST_COMMANDS.md                   # Full command reference
+```bash
+export BROWSERSTACK_USERNAME=...
+export BROWSERSTACK_ACCESS_KEY=...
+npm run test:bstack:smoke          # Chrome, Firefox and Safari
+npm run test:bstack:regression
+npm run test:compat                # wider matrix defined in wdio.compatibility.conf.js
 ```
 
----
+Runs so far cover Chrome (Windows 11), Firefox (Windows 11) and Safari (macOS Ventura). `wdio.compatibility.conf.js` defines a larger matrix (Edge, older versions, iPhone and Pixel) that hasn't been run in full yet.
 
-## ⚙️ Configuration
+BrowserStack can't reach `localhost` directly: point `BASE_URL` at a publicly reachable test environment, or use BrowserStack Local.
 
-### Environment Variables
+## AI-assisted workflow
+
+- **`CLAUDE.md`** holds the project rules an AI coding assistant follows here: Page Object Model, naming, tagging, synthetic data only.
+- **`.claude/`** holds agent instructions (test writer, bug triage, regression prevention), task guides for feature files and step definitions, and pre-commit and post-test checklists.
+- **Ticket to Gherkin:** `npm run generate:ticket -- ABC-123 --mock` turns a Jira ticket payload into a draft feature file. It currently uses rules and templates, not a language model. Drafts go to `AI-generated-features/`, tagged `@draft`, and don't run until a person reviews them and moves them into `features/`. [`abc-123.feature`](AI-generated-features/abc-123.feature) is a sample.
+- **Optional Jira MCP:** copy `.vscode/mcp.json.example` to `.vscode/mcp.json`, add your Jira MCP server and credentials (see `.env.example`), then ask the assistant to create scenarios for a ticket.
+
+## Configuration
 
 | Variable | Default | Purpose |
-|----------|---------|---------|
+| --- | --- | --- |
 | `BASE_URL` | `http://localhost:3000` | Application under test |
-| `BROWSERSTACK_USERNAME` | — | BrowserStack account |
-| `BROWSERSTACK_ACCESS_KEY` | — | BrowserStack API key |
-| `JIRA_BASE_URL` | — | Jira site URL for optional MCP ticket fetch |
-| `JIRA_EMAIL` | — | Jira user email for optional MCP ticket fetch |
-| `JIRA_API_TOKEN` | — | Jira API token for optional MCP ticket fetch |
+| `AUDIT_URL` | same as `BASE_URL` | Audit service for the events suite |
+| `BROWSERSTACK_USERNAME`, `BROWSERSTACK_ACCESS_KEY` | | BrowserStack account |
+| `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN` | | Optional Jira MCP ticket fetch |
 
-```bash
-# Staging
-BASE_URL=https://staging.mortgages.bank npm run test:smoke
-
-# Production
-BASE_URL=https://mortgages.bank npm run test:regression
-```
-
-### Optional MCP Layer (Ticket -> Scenarios)
-
-Use this only when you want to generate scenarios from a live Jira ticket.
-
-1. Copy `.vscode/mcp.json.example` to `.vscode/mcp.json` and replace command/args with your Jira MCP server settings.
-2. Add Jira credentials in your local environment (see `.env.example`).
-3. Ask the agent: `Use ticket ABC-123 and create BDD scenarios`.
-
-If MCP is unavailable, the agent falls back to the normal manual requirement flow.
-
-### Scaffolded Generator Command (Mock Payload)
-
-Generate a draft feature from a mock Jira payload:
-
-```bash
-npm run generate:ticket -- ABC-123 --mock
-```
-
-Inputs and outputs:
-- Mock payload input: `test-data/mock-jira/ABC-123.json`
-- Generated feature output: `AI-generated-features/abc-123.feature`
-
-This keeps generated drafts outside `features/` so they do not affect normal test execution until reviewed and promoted.
-
-### Mock Server Endpoints
+### Mock server endpoints
 
 | Method | Path | Purpose |
-|--------|------|---------|
-| GET | `/` | Serves DIP HTML form |
-| POST | `/api/mortgages/dip/decision` | DIP decision engine |
+| --- | --- | --- |
+| GET | `/` | The DIP form |
+| POST | `/api/mortgages/dip/decision` | Decision, returns an `applicationId` |
 | POST | `/api/mortgages/dip/calculate-borrowing-power` | Affordability calculator |
+| GET | `/api/applications/{id}` | A saved application |
+| GET | `/api/audit/{id}` | The audit trail of an application |
 
 ```bash
-# Example: call DIP decision API directly
 curl -X POST http://localhost:3000/api/mortgages/dip/decision \
   -H "Content-Type: application/json" \
   -d '{"annualIncome": 45000, "loanAmount": 150000, "existingCommitments": 0}'
-# {"decision":"Accepted","reason":"Within standard affordability limits",...}
 ```
 
----
+## Project structure
 
-## 📸 Jenkins Run
+```
+.
+├── features/
+│   ├── features/dip-eligibility.feature      # BDD scenarios
+│   ├── step-definitions/dip-eligibility.steps.js
+│   ├── pages/                                # page objects
+│   └── Locators/                             # selectors used by the page objects
+├── api-test.js                               # API suite
+├── events-test.js                            # events suite (saved + audited)
+├── a11y-test.js                              # accessibility checks (axe-core)
+├── perf-test.js · perf-stress-test.js        # timing and repeatability checks
+├── run-all-tests.js                          # runs the mock-server suites in one go
+├── mock-server.js                            # mock DIP app on port 3000
+├── wdio.conf.js                              # local WebdriverIO config
+├── wdio.browserstack.conf.js                 # BrowserStack: Chrome, Firefox, Safari
+├── wdio.compatibility.conf.js                # wider BrowserStack matrix
+├── test-data/                                # synthetic applicants, mock Jira ticket
+├── scripts/generate-ticket-gherkin.js        # ticket-to-Gherkin draft generator
+├── AI-generated-features/                    # generated drafts, not run until reviewed
+├── .claude/ · CLAUDE.md                      # AI assistant rules and agent instructions
+├── .github/workflows/                        # GitHub Actions
+├── Jenkinsfile · Dockerfile · docker-compose.yml
+└── docs/                                     # images and a sample Allure report
+```
 
-**Live Allure report:** https://servincharles.github.io/Agentic-qa-demo/report/ (GitHub Pages, source `/docs`). View locally with `npx allure open docs/report`.
+## Architecture rules
 
-Pipeline: install → lint → mock server → smoke/regression → Allure report. Run it with **Build with Parameters** (`TEST_SUITE`, `BROWSER`, `USE_DOCKER`).
-
-| Pipeline stages | Allure report |
-|---|---|
-| ![Jenkins pipeline](docs/images/jenkins-pipeline.png) | ![Allure report](docs/images/allure-report.png) |
-
-| Build with Parameters | Scenario steps |
-|---|---|
-| ![Build parameters](docs/images/jenkins-parameters.png) | ![Allure scenario](docs/images/allure-scenario.png) |
-
----
-
-## 🏛️ Architecture Rules
-
-1. **Page Object Model is mandatory.** No selectors inside step definitions. All locators live in `features/Locators/*.locators.js` and are used by `features/pages/*.page.js`.
+1. **Page Object Model:** no selectors in step definitions. Locators live in `features/Locators/*.locators.js` and are used by `features/pages/*.page.js`.
 2. **One page object per screen.** Shared components go in `features/pages/components/`.
-3. **Step definitions are thin** — orchestration only. Assertions use `expect` from `@wdio/globals`.
-4. **No `browser.pause()`** outside debugging. Use WebdriverIO auto-wait or `waitForDisplayed`.
-5. **Never hardcode credentials, PII, card/account numbers.** Use `test-data/*.json` + environment variables.
-6. **Every new page object** needs at least one smoke scenario tagged `@smoke`.
+3. **Thin step definitions:** orchestration only, assertions with `expect` from `@wdio/globals`.
+4. **No `browser.pause()`** outside debugging. Use WebdriverIO's auto-wait or `waitForDisplayed`.
+5. **No credentials, PII, card or account numbers** in the repo. Use `test-data/*.json` and environment variables.
+6. **Every new page object** gets at least one `@smoke` scenario.
 7. **Flaky tests** are quarantined with `@quarantine`, never silently deleted.
 
-### Naming Conventions
-
 | Artefact | Convention | Example |
-|----------|------------|---------|
+| --- | --- | --- |
 | Feature files | `kebab-case.feature` | `dip-eligibility.feature` |
 | Page objects | `camelCase.page.js` | `dipJourney.page.js` |
-| Step definitions | Mirror feature name | `dip-eligibility.steps.js` |
-| Gherkin scenarios | Start with verb | `Accept an applicant within...` |
+| Step definitions | Mirror the feature name | `dip-eligibility.steps.js` |
+| Scenario titles | Start with a verb | `Accept an applicant within...` |
 
----
+## Screenshots
 
-## 🐛 Troubleshooting
+A [sample Allure report](https://servincharles.github.io/Agentic-qa-demo/report/) from a mock-server run is published from `docs/report` (open it locally with `npx allure open docs/report`).
 
-### Mock server port already in use
-```bash
-lsof -i :3000
-kill -9 <PID>
-node mock-server.js
-```
+| Jenkins job | Allure report |
+| --- | --- |
+| ![Jenkins job](docs/images/jenkins-job.png) | ![Allure report](docs/images/allure-report.png) |
 
-### Tests timeout / ERR_CONNECTION_REFUSED
-```bash
-# Check server is running
-curl http://localhost:3000/
-# If not, start it:
-node mock-server.js
-```
+| BrowserStack builds | BrowserStack sessions (Chrome, Firefox, Safari) |
+| --- | --- |
+| ![BrowserStack builds](docs/images/browserstack-builds.png) | ![BrowserStack sessions](docs/images/browserstack-sessions.png) |
 
-### BrowserStack tests fail
-```bash
-echo $BROWSERSTACK_USERNAME   # Should not be empty
-echo $BROWSERSTACK_ACCESS_KEY # Should not be empty
-# BASE_URL must be a publicly accessible URL (not localhost)
-export BASE_URL=https://staging.mortgages.bank
-```
+## Troubleshooting
 
-### Allure report port in use
-```bash
-lsof -i :5555 | grep node | awk '{print $2}' | xargs kill -9
-npm run report:view
-```
+| Problem | Fix |
+| --- | --- |
+| Mock server port 3000 in use | `lsof -nP -iTCP:3000 -sTCP:LISTEN`, `kill` that PID, then `node mock-server.js` |
+| `ERR_CONNECTION_REFUSED` against the mock | Start it: `node mock-server.js` |
+| BrowserStack runs fail | Check `BROWSERSTACK_USERNAME` and `BROWSERSTACK_ACCESS_KEY`, and that `BASE_URL` is reachable from BrowserStack |
+| Allure viewer port 5555 in use | `lsof -nP -iTCP:5555 -sTCP:LISTEN`, `kill` that PID, then `npm run report:view` |
+| Jenkins: `docker: command not found` | Install and start colima, then `brew services restart jenkins-lts` |
+| Jenkins login | The initial password is in `~/.jenkins/secrets/initialAdminPassword` |
+| Dependencies won't install | `npm cache clean --force`, delete `node_modules`, then `npm ci` |
 
-### Jenkins login problems
-Use the password in `~/.jenkins/secrets/initialAdminPassword` (user `admin`). If it was changed, temporarily set `<useSecurity>false</useSecurity>` in `~/.jenkins/config.xml` (back it up first), restart Jenkins, reset the user password, then restore the backup. Don't leave security disabled.
+## Security
 
-### Jenkins: `docker: command not found`
-Install Docker/Colima, start Colima, and restart Jenkins (`brew services restart jenkins-lts`).
+- Secrets come from environment variables or the CI credential store, never from the repo.
+- Test data is synthetic: no real names, PII, card numbers or sort codes.
 
-### Dependencies won't install
-```bash
-npm cache clean --force
-rm -rf node_modules package-lock.json
-npm install
-```
+## Resources
 
----
-
-## 🔒 Security & Compliance
-
-- All secrets via environment variables — nothing hardcoded in the repo
-- Test data is fully synthetic (no real PII, card numbers, or sort codes)
-- Mock server uses synthetic data only
-- Suitable for regulated environments (banking/finance)
-
----
-
-## 📖 Resources
-
-- [WebdriverIO Docs](https://webdriver.io/)
-- [Cucumber/Gherkin Guide](https://cucumber.io/docs/gherkin/)
-- [axe-core Accessibility](https://www.deque.com/axe/)
-- [BrowserStack Docs](https://www.browserstack.com/docs)
-- [Allure Reports](https://docs.qameta.io/allure/)
-- [TEST_COMMANDS.md](./TEST_COMMANDS.md) — Full command reference
-- [COMPATIBILITY_MATRIX.md](./COMPATIBILITY_MATRIX.md) — Browser support matrix
-
----
-
-**Last Updated:** July 2026 | **Version:** 1.0.0 | **Status:** Production Ready ✅
+[WebdriverIO](https://webdriver.io/) · [Cucumber / Gherkin](https://cucumber.io/docs/gherkin/) · [axe-core](https://www.deque.com/axe/) · [BrowserStack](https://www.browserstack.com/docs) · [Allure](https://allurereport.org/docs/)
