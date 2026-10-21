@@ -71,7 +71,7 @@ jobs:
           name: aip-e2e-results
           path: |
             allure-results/
-            api-test-report.html
+            reports/
             coverage/
             services.log
           if-no-files-found: ignore

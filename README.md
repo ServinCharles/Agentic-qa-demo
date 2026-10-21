@@ -12,7 +12,7 @@ A test framework for a mortgage **Decision-in-Principle (DIP)** journey: BDD UI 
 ## What this project demonstrates
 
 - **BDD with Page Object Model:** WebdriverIO 9 + Cucumber, locators kept out of step definitions
-- **API and contract checks** on the DIP decision endpoint, with synthetic applicants from `test-data/`
+- **One BDD style for UI, API and events:** Cucumber throughout; the API and events features run without a browser and check contracts with JSON schemas (Ajv), using synthetic applicants from `test-data/`
 - **Event-driven testing:** a decision is saved to MongoDB, published to Kafka and recorded by an audit service; the suite polls for the event instead of using fixed sleeps
 - **Environment-aware CI:** the same suites run against `mock`, `sit-01` or `sit-02` (GitHub Actions and Jenkins), with a fail-fast reachability check
 - **Real defects found by the tests:** on sit-01 the events suite failed 0/10 and led to two fixes in the platform: pods running out of memory (OOMKilled), and images built for the wrong CPU architecture
@@ -25,14 +25,14 @@ A test framework for a mortgage **Decision-in-Principle (DIP)** journey: BDD UI 
 | --- | --- | --- | --- |
 | BDD smoke | `npm run test:smoke` | WebdriverIO + Cucumber | `@smoke` scenarios of the DIP journey |
 | BDD regression | `npm run test:regression` | WebdriverIO + Cucumber | Accepted, Referred and Declined journeys |
-| API | `npm run test:api` | Node.js HTTP client | 11 checks: decisions, response contract, validation, edge cases, calculator |
-| Events | `npm run test:events` | Node.js HTTP client | 10 checks: application saved, decision event audited exactly once |
+| API | `npm run test:api` | Cucumber (no browser) + Ajv | 11 scenarios: decisions per applicant, response contract, validation, high loan-to-income, calculator |
+| Events | `npm run test:events` | Cucumber (no browser) + Ajv | 12 scenarios: application saved, decision event audited exactly once, each outcome audited |
 | Accessibility | `npm run test:a11y` | axe-core | Automated WCAG 2.1 AA rules on the DIP page |
 | Timing | `npm run test:perf` | WebdriverIO | Page load and interaction timings against the mock server |
 | Repeatability | `npm run test:stress` | WebdriverIO | The journey 5 times in a row, with timing variance |
 | Cross-browser | `npm run test:bstack` | BrowserStack | Chrome, Firefox and Safari |
 
-The api and events suites write JUnit XML to `reports/`, which Jenkins shows as test results and the Allure report includes. The API suite also writes `api-test-report.html`.
+The API and events features write JUnit XML and an HTML report to `reports/`. Jenkins shows the JUnit results, archives the HTML report, and copies the JUnit results into the Allure report.
 
 The accessibility and timing checks are automated signals, not a compliance audit or a load test: axe-core finds a subset of WCAG issues, and the timings come from a local mock server.
 
@@ -107,15 +107,15 @@ For sit-02 use the `sit-02-dip` and `sit-02-api` namespaces. A port-forward is t
 
 ### Events suite
 
-`events-test.js` checks the event-driven flow: aip-api saves each application and publishes an `AipDecisionMade` event to Kafka, and aip-audit-service records it.
+[`decision-audit.feature`](api-tests/features/decision-audit.feature) checks the event-driven flow: aip-api saves each application and publishes an `AipDecisionMade` event to Kafka, and aip-audit-service records it.
 
 | Test | Checks |
 | --- | --- |
 | Application ID | Every decision returns its own `applicationId` (`AIP-yyyyMMdd-XXXXXXXX`) |
 | Application saved | `GET /api/applications/{id}` returns the same income, commitments, loan and decision |
 | Not found / invalid | An unknown ID gives 404, a malformed ID gives 400 |
-| Event audited | Polls `GET /api/audit/{id}` until the event appears, then checks the contract: `eventType`, `schemaVersion`, `decision`, and no income in the event |
-| Exactly once | Still one audited event a couple of seconds later |
+| Event audited | Polls `GET /api/audit/{id}` until the event appears, then checks it against the `AipDecisionMade` schema: `eventType`, `schemaVersion`, `decision`, and no income in the event |
+| Exactly once | Keeps checking for 2 seconds that no duplicate event arrives |
 | All outcomes | Accepted, Referred and Declined are each audited with the right decision |
 | Rejected request | A rejected request gets no `applicationId`, so nothing is saved or audited |
 
@@ -221,8 +221,11 @@ curl -X POST http://localhost:3000/api/mortgages/dip/decision \
 │   ├── step-definitions/dip-eligibility.steps.js
 │   ├── pages/                                # page objects
 │   └── Locators/                             # selectors used by the page objects
-├── api-test.js                               # API suite
-├── events-test.js                            # events suite (saved + audited)
+├── api-tests/                                # API and events BDD (Cucumber, no browser)
+│   ├── features/                             # dip-decision-api.feature, decision-audit.feature
+│   ├── step-definitions/                     # common, API and audit steps
+│   └── support/                              # HTTP client, world (settings, polling), JSON schemas
+├── cucumber.js                               # Cucumber profiles: api, events
 ├── a11y-test.js                              # accessibility checks (axe-core)
 ├── perf-test.js · perf-stress-test.js        # timing and repeatability checks
 ├── run-all-tests.js                          # runs the mock-server suites in one go
