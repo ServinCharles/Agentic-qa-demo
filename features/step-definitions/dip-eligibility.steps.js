@@ -2,11 +2,27 @@ const { Given, When, Then } = require('@wdio/cucumber-framework');
 const { expect } = require('@wdio/globals');
 const dipJourneyPage = require('../pages/dipJourney.page');
 const dipDecisionPage = require('../pages/dipDecision.page');
+const applicants = require('../../test-data/applicants.json');
+
+// "the standard applicant" -> applicants.standardApplicant
+function applicantNamed(name) {
+  const applicant = applicants[`${name}Applicant`];
+  if (!applicant) {
+    const known = Object.keys(applicants).filter(key => key.endsWith('Applicant')).map(key => key.replace('Applicant', ''));
+    throw new Error(`Unknown applicant "${name}" in test-data/applicants.json. Known: ${known.join(', ')}`);
+  }
+  return applicant;
+}
 
 Given('a new Decision-in-Principle journey has started', async () => {
   await dipJourneyPage.open();
 });
 
+When('the {word} applicant requests a decision', async (name) => {
+  await dipJourneyPage.requestDecisionFor(applicantNamed(name));
+});
+
+// Steps with the amounts written in the scenario, for cases where the exact value is the point (e.g. boundaries)
 Given('the applicant declares an annual income of {money}', async (amount) => {
   await dipJourneyPage.enterAnnualIncome(String(amount));
 });
