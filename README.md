@@ -119,7 +119,7 @@ Allure report: `npm run test:smoke:report`, or `npm run report:view` after a run
 
 UI, API and events scenarios name an applicant (`standard`, `referred`, `declined`), and the step loads it from `test-data/applicants.json`, so all suites share one set of synthetic data. Where the exact amount is the point of the test, such as the 4.5x income boundary, the scenario writes it out (`£40,000`).
 
-**`{money}` = the amount.** A custom Cucumber parameter type (`features/support/parameter-types.js`) reads a pound amount exactly as written and gives the step a number:
+**`{amount}`: the pound amount as a number.** A custom Cucumber parameter type (`features/support/parameter-types.js`) reads a pound amount exactly as written and gives the step a number:
 
 | In the feature file | The step receives |
 | --- | --- |
@@ -127,7 +127,7 @@ UI, API and events scenarios name an applicant (`standard`, `referred`, `decline
 | `£1,800` | `1800` |
 | `£1,800.50` | `1800.5` |
 
-**Bug found and fixed:** the steps used to read amounts with `£{float},{int}`, which split `£45,000` at the comma and turned `000` into `0`, so the form was filled with **450** instead of 45,000 (and £150,000 became 1500). The scenarios still passed only because the ratios gave the same decisions. `{money}` replaced it.
+**Bug found and fixed:** the steps used to read amounts with `£{float},{int}`, which split `£45,000` at the comma and turned `000` into `0`, so the form was filled with **450** instead of 45,000 (and £150,000 became 1500). The scenarios still passed only because the ratios gave the same decisions. `{amount}` replaced it.
 
 ### VS Code
 
@@ -321,7 +321,7 @@ curl -X POST http://localhost:3000/api/mortgages/dip/decision \
 │   ├── step-definitions/                     # dip-eligibility.steps.js, dip-accessibility.steps.js
 │   ├── pages/                                # page objects
 │   ├── Locators/                             # selectors used by the page objects
-│   └── support/                              # {money} parameter type, axe-core accessibility helper
+│   └── support/                              # {amount} parameter type, axe-core accessibility helper
 ├── api-tests/                                # API and events BDD (Cucumber, no browser)
 │   ├── features/                             # dip-decision-api.feature, decision-audit.feature
 │   ├── step-definitions/                     # common, API and audit steps
