@@ -25,13 +25,15 @@ Feature: DIP journey accessibility
       | referred  | Referred |
       | declined  | Declined |
 
-  # WCAG 2.1.1 Keyboard
+  # WCAG 2.1.1 Keyboard. @desktop-only: needs a physical keyboard, so compatibility runs on phones skip it
+  @desktop-only
   Scenario: Complete the journey using only the keyboard
     When the standard applicant requests a decision using only the keyboard
     Then the decision is "Accepted"
     And the maximum borrowing amount is displayed
 
   # WCAG 2.4.7 Focus Visible
+  @desktop-only
   Scenario: Show where keyboard focus is on every form control
     Then every form control shows a visible focus indicator
 
@@ -41,7 +43,8 @@ Feature: DIP journey accessibility
     Then the decision is "Accepted"
     And the decision is announced to screen readers
 
-  # WCAG 1.4.10 Reflow
+  # WCAG 1.4.10 Reflow (resizes the viewport, which real mobile devices don't allow)
+  @desktop-only
   Scenario: Fit the journey on a 320 pixel wide screen without scrolling sideways
     When the page is shown at 320 CSS pixels wide
     Then the content fits without scrolling sideways

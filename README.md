@@ -11,12 +11,20 @@ A test framework for a mortgage **Decision-in-Principle (DIP)** journey: BDD UI 
 
 ## What this project demonstrates
 
-- **BDD with Page Object Model:** WebdriverIO 9 + Cucumber, locators kept out of step definitions
-- **One BDD style for UI, API and events:** Cucumber throughout; the API and events features run without a browser and check contracts with JSON schemas (Ajv), using synthetic applicants from `test-data/`
-- **Event-driven testing:** a decision is saved to MongoDB, published to Kafka and recorded by an audit service; the suite polls for the event instead of using fixed sleeps
-- **Environment-aware CI:** the same suites run against `mock`, `sit-01` or `sit-02` (GitHub Actions and Jenkins), with a fail-fast reachability check
-- **Real defects found by the tests:** on sit-01 the events suite failed 0/10 and led to two fixes in the platform: pods running out of memory (OOMKilled), and images built for the wrong CPU architecture
-- **Cross-browser runs** on BrowserStack, **accessibility checks** with axe-core, **Allure and JUnit reports**
+- **BDD with Page Object Model:** WebdriverIO 9 + Cucumber, locators kept out of step definitions, applicants loaded from shared JSON test data
+- **One BDD style for UI, API and events:** Cucumber throughout; the API and events features run without a browser and check contracts with JSON schemas (Ajv)
+- **API robustness:** validation, malformed JSON, a consistent error format, hostile input (injection strings, path traversal, over-long IDs) and response-time limits
+- **Event-driven testing:** a decision is saved to MongoDB, published to Kafka and audited exactly once; the suite polls for the event instead of using fixed sleeps
+- **Accessibility:** WCAG 2.1 AA scenarios with axe-core on every page state, plus keyboard-only, focus, screen reader announcement and reflow checks
+- **Performance:** Lighthouse CI budgets (LCP, CLS, TBT and category scores) that fail the build
+- **Cross-browser and compatibility:** BrowserStack runs on 7 desktop browsers and 2 real phones
+- **Environment-aware CI/CD:** the same suites run against `mock`, `sit-01` or `sit-02` in GitHub Actions and Jenkins, with fail-fast checks, protected `main`, and a CI failure triage that reports the actual test errors and asks for a human review
+- **Real defects found by the tests:**
+  - on sit-01 the events suite failed 0/10 and led to two platform fixes: pods running out of memory (OOMKilled), and images built for the wrong CPU architecture (amd64 under emulation on arm64)
+  - a step-definition bug entered "£45,000" as 450
+  - the mock server didn't match the real API for some error cases
+  - path traversal behaves differently through the web app's nginx than against the API directly
+  - Lighthouse flagged missing compression, cache headers and SEO basics in the web app
 - **AI-assisted workflow:** written rules and agent instructions for Claude Code (`CLAUDE.md`, `.claude/`), plus a ticket-to-Gherkin generator that writes draft scenarios for human review
 
 ## Test suites
@@ -87,6 +95,43 @@ node run-all-tests.js
 ```
 
 Allure report: `npm run test:smoke:report`, or `npm run report:view` after a run (serves it on http://localhost:5555).
+
+### All npm scripts
+
+| Script | What it runs |
+| --- | --- |
+| `test:smoke`, `test:regression` | BDD UI suites (`@smoke`, `@regression`) in local Chrome |
+| `test:smoke:report`, `test:regression:report` | The same, then opens the Allure report |
+| `test:api`, `test:events` | API and events features (Cucumber, no browser) |
+| `test:accessibility` | Accessibility scenarios (`@a11y`) |
+| `test:accessibility:scan` | Quick standalone axe scan of the empty form (`a11y-test.js`) |
+| `test:lighthouse` | Lighthouse CI page performance budgets |
+| `test:perf`, `test:stress` | Browser timing and repeatability checks against the mock |
+| `test:bstack`, `test:bstack:smoke`, `test:bstack:regression`, `test:bstack:accessibility` | BrowserStack: Chrome, Firefox, Safari |
+| `test:compatibility`, `test:compatibility:full` | BrowserStack compatibility matrix (`@smoke`, or `@regression` without `@desktop-only`) |
+| `test:all` | `run-all-tests.js`: the mock-server suites in one go, with an HTML summary |
+| `generate:ticket` | Ticket-to-Gherkin draft generator |
+| `report:view` | Serves the Allure report |
+| `lint` | ESLint over the test code |
+| `wdio` | WebdriverIO with `wdio.conf.js` and no tag filter |
+
+### Test data
+
+UI, API and events scenarios name an applicant (`standard`, `referred`, `declined`), and the step loads it from `test-data/applicants.json`, so all suites share one set of synthetic data. Where the exact amount is the point of the test, such as the 4.5x income boundary, the scenario writes it out (`£40,000`).
+
+**`{money}` = the amount.** A custom Cucumber parameter type (`features/support/parameter-types.js`) reads a pound amount exactly as written and gives the step a number:
+
+| In the feature file | The step receives |
+| --- | --- |
+| `£45,000` | `45000` |
+| `£1,800` | `1800` |
+| `£1,800.50` | `1800.5` |
+
+**Bug found and fixed:** the steps used to read amounts with `£{float},{int}`, which split `£45,000` at the comma and turned `000` into `0`, so the form was filled with **450** instead of 45,000 (and £150,000 became 1500). The scenarios still passed only because the ratios gave the same decisions. `{money}` replaced it.
+
+### VS Code
+
+`.vscode/settings.json` points the [Cucumber extension](https://marketplace.visualstudio.com/items?itemName=CucumberOpen.cucumber-official) at both feature folders and their step definitions, so steps are recognised and Cmd/Ctrl+click goes to the step definition. VS Code offers to install the extension (`.vscode/extensions.json`).
 
 ## Testing the AIP microservices
 
@@ -166,6 +211,8 @@ It needs persistence switched on, so run it against `mock` or `sit-01`. Duplicat
 
 `main` is protected: changes go through a pull request, and the CI checks must pass before merging.
 
+The test steps save their output to `logs/`. When a step fails, [`scripts/report-test-errors.sh`](scripts/report-test-errors.sh) turns the error lines (failed steps, assertion messages, accessibility violations) into **GitHub annotations**, so the actual error shows on the run summary and in the CI failure triage comment, not just "exit code 1".
+
 ### Jenkins
 
 The [Jenkinsfile](Jenkinsfile) installs dependencies, lints, starts the mock server when needed, runs the chosen suite, and publishes JUnit results and the Allure report.
@@ -178,11 +225,12 @@ The [Jenkinsfile](Jenkinsfile) installs dependencies, lints, starts the mock ser
 
 | Parameter | Values | Purpose |
 | --- | --- | --- |
-| `TEST_SUITE` | `smoke`, `regression`, `api`, `events`, `accessibility`, `lighthouse`, `all` | Which suite to run (`all` = smoke, regression and api) |
+| `TEST_SUITE` | `smoke`, `regression`, `api`, `events`, `accessibility`, `compatibility`, `lighthouse`, `all` | Which suite to run (`all` = smoke, regression and api) |
 | `ENVIRONMENT` | `mock` (default), `sit-01`, `sit-02` | The mock server, or a deployed AIP environment |
 | `BASE_URL` | empty, or a URL | Overrides the environment's URL, e.g. `http://localhost:8090` for a port-forward |
 | `AUDIT_URL` | empty, or a URL | `events` only: the audit service. Empty = the mock for `mock`, `http://localhost:8091` for SIT |
 | `BROWSER` | `local`, `browserstack` | Local Chrome or BrowserStack |
+| `COMPATIBILITY_SCOPE` | `smoke` (default), `regression`, `accessibility` | `TEST_SUITE=compatibility` only: which scenarios run on every BrowserStack browser and device |
 | `BROWSERSTACK_ACCESSIBILITY` | `off` (default), `on` | With `BROWSER=browserstack`: also run BrowserStack Accessibility Testing scans (needs it on your BrowserStack plan) |
 | `USE_DOCKER` | `false` (default), `true` | Run the tests in the Docker image from the [Dockerfile](Dockerfile) |
 
@@ -200,20 +248,35 @@ docker run --rm -v "$PWD":/app -v /app/node_modules agentic-qa-demo \
 
 The Dockerfile sets `CHROME_BIN` and `CHROMEDRIVER_PATH`, and [wdio.conf.js](wdio.conf.js) then runs Chrome headless.
 
-## Cross-browser (BrowserStack)
+## Cross-browser and compatibility (BrowserStack)
 
 ```bash
 export BROWSERSTACK_USERNAME=...
 export BROWSERSTACK_ACCESS_KEY=...
-npm run test:bstack:smoke          # Chrome, Firefox and Safari
-npm run test:bstack:accessibility           # accessibility scenarios on the same browsers
+npm run test:bstack:smoke             # Chrome, Firefox and Safari
+npm run test:bstack:accessibility     # accessibility scenarios on the same browsers
 npm run test:bstack:regression
-npm run test:compat                # wider matrix defined in wdio.compatibility.conf.js
+npm run test:compatibility            # @smoke on the full compatibility matrix
+npm run test:compatibility:full       # @regression on the matrix (skips @desktop-only)
 ```
 
-Runs so far cover Chrome (Windows 11), Firefox (Windows 11) and Safari (macOS Ventura). `wdio.compatibility.conf.js` defines a larger matrix (Edge, older versions, iPhone and Pixel) that hasn't been run in full yet.
+**Compatibility matrix** (`wdio.compatibility.conf.js`), BrowserStack only:
 
-BrowserStack can't reach `localhost` directly: point `BASE_URL` at a publicly reachable test environment, or use BrowserStack Local.
+| Platform | Browsers and devices |
+| --- | --- |
+| Windows 11 | Chrome latest, Edge latest, Firefox latest |
+| Windows 10 | Chrome latest-1 |
+| macOS Sequoia | Safari latest, Firefox latest |
+| macOS Sonoma | Safari latest |
+| Real phones | iPhone 15 (iOS 17, Safari), Google Pixel 8 (Android 14, Chrome) |
+
+Versions use BrowserStack's rolling `latest` and `latest-1`, so the matrix doesn't go out of date. Scenarios tagged `@desktop-only` (keyboard-only journey, focus indicator, reflow) are skipped in compatibility runs, because phones have no physical keyboard and don't allow viewport resizing. Up to 5 sessions run in parallel; every session uses BrowserStack minutes.
+
+In Jenkins: `TEST_SUITE=compatibility` with `COMPATIBILITY_SCOPE` = `smoke` (default), `regression` or `accessibility`. It always runs on BrowserStack, whatever `BROWSER` says.
+
+BrowserStack can't reach `localhost` directly. BrowserStack Local (on in both configs) tunnels to `BASE_URL`, so the mock and a sit-01 port-forward both work.
+
+Runs so far cover Chrome (Windows 11), Firefox (Windows 11) and Safari (macOS Ventura) from `wdio.browserstack.conf.js`; the compatibility matrix above hasn't been run in full yet.
 
 ## AI-assisted workflow
 
@@ -254,27 +317,34 @@ curl -X POST http://localhost:3000/api/mortgages/dip/decision \
 ```
 .
 ├── features/
-│   ├── features/dip-eligibility.feature      # BDD scenarios
-│   ├── step-definitions/dip-eligibility.steps.js
+│   ├── features/                             # dip-eligibility.feature, dip-accessibility.feature
+│   ├── step-definitions/                     # dip-eligibility.steps.js, dip-accessibility.steps.js
 │   ├── pages/                                # page objects
-│   └── Locators/                             # selectors used by the page objects
+│   ├── Locators/                             # selectors used by the page objects
+│   └── support/                              # {money} parameter type, axe-core accessibility helper
 ├── api-tests/                                # API and events BDD (Cucumber, no browser)
 │   ├── features/                             # dip-decision-api.feature, decision-audit.feature
 │   ├── step-definitions/                     # common, API and audit steps
 │   └── support/                              # HTTP client, world (settings, polling), JSON schemas
 ├── cucumber.js                               # Cucumber profiles: api, events
-├── a11y-test.js                              # accessibility checks (axe-core)
+├── lighthouserc.js                           # Lighthouse CI budgets
+├── a11y-test.js                              # quick standalone axe scan (test:accessibility:scan)
 ├── perf-test.js · perf-stress-test.js        # timing and repeatability checks
 ├── run-all-tests.js                          # runs the mock-server suites in one go
+├── allure-report-viewer.js                   # serves the Allure report (report:view)
+├── chrome-capabilities.js                    # Chrome settings for the timing and scan scripts
 ├── mock-server.js                            # mock DIP app on port 3000
 ├── wdio.conf.js                              # local WebdriverIO config
 ├── wdio.browserstack.conf.js                 # BrowserStack: Chrome, Firefox, Safari
-├── wdio.compatibility.conf.js                # wider BrowserStack matrix
+├── wdio.compatibility.conf.js                # BrowserStack compatibility matrix: 7 desktop, 2 real phones
 ├── test-data/                                # synthetic applicants, mock Jira ticket
-├── scripts/generate-ticket-gherkin.js        # ticket-to-Gherkin draft generator
+├── scripts/
+│   ├── generate-ticket-gherkin.js            # ticket-to-Gherkin draft generator
+│   └── report-test-errors.sh                 # CI: test errors as GitHub annotations
 ├── AI-generated-features/                    # generated drafts, not run until reviewed
 ├── .claude/ · CLAUDE.md                      # AI assistant rules and agent instructions
-├── .github/workflows/                        # GitHub Actions
+├── .github/workflows/                        # smoke, E2E and CI failure triage workflows
+├── .vscode/                                  # Cucumber extension settings
 ├── Jenkinsfile · Dockerfile · docker-compose.yml
 └── docs/                                     # images and a sample Allure report
 ```

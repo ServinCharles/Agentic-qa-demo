@@ -1,5 +1,28 @@
 const baseConfig = require('./wdio.conf.js');
 
+// BrowserStack compatibility matrix: the same scenarios across desktop browsers and real mobile devices.
+//   npm run test:compatibility          @smoke (default)
+//   npm run test:compatibility:full     every scenario
+// Needs BROWSERSTACK_USERNAME and BROWSERSTACK_ACCESS_KEY. BrowserStack Local tunnels to BASE_URL, so it
+// works against the mock or a sit-01 port-forward. Each session uses BrowserStack minutes.
+const BUILD = `Compatibility ${process.env.BUILD_NUMBER ? `#${process.env.BUILD_NUMBER}` : 'local'}`;
+const common = { buildName: BUILD, projectName: 'DIP Mortgage' };
+
+function desktop(browserName, browserVersion, os, osVersion) {
+  return {
+    browserName,
+    browserVersion,
+    'bstack:options': { ...common, os, osVersion, sessionName: `${browserName} ${browserVersion} - ${os} ${osVersion}` }
+  };
+}
+
+function mobile(browserName, deviceName, osVersion) {
+  return {
+    browserName,
+    'bstack:options': { ...common, deviceName, osVersion, realMobile: 'true', sessionName: `${browserName} - ${deviceName}` }
+  };
+}
+
 exports.config = {
   ...baseConfig.config,
   
@@ -12,6 +35,8 @@ exports.config = {
     ['browserstack', {
       browserstackLocal: true,
       forceLocal: true,
+      accessibility: process.env.BROWSERSTACK_ACCESSIBILITY === 'true',
+      accessibilityOptions: { wcagVersion: 'wcag21aa' },
       opts: {
         logFile: './logs/browserstack.log'
       }
@@ -19,118 +44,21 @@ exports.config = {
   ],
   
   // Comprehensive browser compatibility matrix
+  // Desktop: current and previous browser versions (BrowserStack's rolling "latest"/"latest-1", so the
+  // matrix doesn't go stale) on Windows 11/10 and the two newest macOS versions BrowserStack offers.
+  // Mobile: real devices. Check names and versions with https://www.browserstack.com/automate/capabilities
   capabilities: [
-    // Chrome Versions
-    {
-      browserName: 'chrome',
-      browserVersion: 'latest',
-      'bstack:options': {
-        os: 'Windows',
-        osVersion: '11',
-        buildName: 'Compatibility Tests',
-        projectName: 'DIP Mortgage',
-        sessionName: 'Chrome Latest - Windows 11'
-      }
-    },
-    {
-      browserName: 'chrome',
-      browserVersion: '121',
-      'bstack:options': {
-        os: 'Windows',
-        osVersion: '10',
-        buildName: 'Compatibility Tests',
-        projectName: 'DIP Mortgage',
-        sessionName: 'Chrome 121 - Windows 10'
-      }
-    },
-    
-    // Firefox Versions
-    {
-      browserName: 'firefox',
-      browserVersion: 'latest',
-      'bstack:options': {
-        os: 'Windows',
-        osVersion: '11',
-        buildName: 'Compatibility Tests',
-        projectName: 'DIP Mortgage',
-        sessionName: 'Firefox Latest - Windows 11'
-      }
-    },
-    {
-      browserName: 'firefox',
-      browserVersion: '122',
-      'bstack:options': {
-        os: 'Windows',
-        osVersion: '10',
-        buildName: 'Compatibility Tests',
-        projectName: 'DIP Mortgage',
-        sessionName: 'Firefox 122 - Windows 10'
-      }
-    },
-    
-    // Safari Versions
-    {
-      browserName: 'Safari',
-      browserVersion: 'latest',
-      'bstack:options': {
-        os: 'OS X',
-        osVersion: 'Ventura',
-        buildName: 'Compatibility Tests',
-        projectName: 'DIP Mortgage',
-        sessionName: 'Safari Latest - macOS Ventura'
-      }
-    },
-    {
-      browserName: 'Safari',
-      browserVersion: '16',
-      'bstack:options': {
-        os: 'OS X',
-        osVersion: 'Sonoma',
-        buildName: 'Compatibility Tests',
-        projectName: 'DIP Mortgage',
-        sessionName: 'Safari 16 - macOS Sonoma'
-      }
-    },
-    
-    // Edge
-    {
-      browserName: 'Edge',
-      browserVersion: 'latest',
-      'bstack:options': {
-        os: 'Windows',
-        osVersion: '11',
-        buildName: 'Compatibility Tests',
-        projectName: 'DIP Mortgage',
-        sessionName: 'Edge Latest - Windows 11'
-      }
-    },
-    
-    // Mobile - iOS
-    {
-      browserName: 'Safari',
-      deviceName: 'iPhone 15',
-      realMobile: true,
-      'bstack:options': {
-        buildName: 'Compatibility Tests',
-        projectName: 'DIP Mortgage',
-        sessionName: 'Safari - iPhone 15'
-      }
-    },
-    
-    // Mobile - Android
-    {
-      browserName: 'Chrome',
-      deviceName: 'Google Pixel 8',
-      realMobile: true,
-      'bstack:options': {
-        buildName: 'Compatibility Tests',
-        projectName: 'DIP Mortgage',
-        sessionName: 'Chrome - Google Pixel 8'
-      }
-    }
+    desktop('chrome', 'latest', 'Windows', '11'),
+    desktop('chrome', 'latest-1', 'Windows', '10'),
+    desktop('edge', 'latest', 'Windows', '11'),
+    desktop('firefox', 'latest', 'Windows', '11'),
+    desktop('firefox', 'latest', 'OS X', 'Sequoia'),
+    desktop('safari', 'latest', 'OS X', 'Sequoia'),
+    desktop('safari', 'latest', 'OS X', 'Sonoma'),
+    mobile('safari', 'iPhone 15', '17'),
+    mobile('chrome', 'Google Pixel 8', '14.0')
   ],
-  
-  maxInstances: 5,  // Increased parallelism
+  maxInstances: 5, // BrowserStack parallel sessions (the free plan allows 5)
   
   connectionRetryTimeout: 180000,
   connectionRetryCount: 3,
