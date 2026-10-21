@@ -155,9 +155,11 @@ const server = http.createServer((req, res) => {
             <input id="requested-loan-amount" data-testid="requested-loan-amount" inputmode="numeric" placeholder="Loan Amount" />
             <button id="get-decision" data-testid="get-decision" type="button">Get Decision</button>
           </form>
-          <div id="decision-badge" data-testid="decision-outcome" style="display:none;">Accepted</div>
-          <div id="max-borrowing" data-testid="max-borrowing-amount" style="display:none;">£250,000</div>
-          <div id="referral-guidance" data-testid="referral-guidance" style="display:none;"></div>
+          <section class="result" aria-live="polite">
+            <div id="decision-badge" data-testid="decision-outcome" style="display:none;">Accepted</div>
+            <div id="max-borrowing" data-testid="max-borrowing-amount" style="display:none;">£250,000</div>
+            <div id="referral-guidance" data-testid="referral-guidance" style="display:none;"></div>
+          </section>
           <script>
             document.getElementById('get-decision').addEventListener('click', async function() {
               const income = parseFloat(document.getElementById('applicant-annual-income').value);

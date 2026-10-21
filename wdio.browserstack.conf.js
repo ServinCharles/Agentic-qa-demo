@@ -11,7 +11,11 @@ exports.config = {
   services: [
     ['browserstack', {
       browserstackLocal: true,
-      forceLocal: true
+      forceLocal: true,
+      // BrowserStack Accessibility Testing: scans pages during the run and reports them in the BrowserStack
+      // dashboard. Off unless BROWSERSTACK_ACCESSIBILITY=true (it's a separate BrowserStack product).
+      accessibility: process.env.BROWSERSTACK_ACCESSIBILITY === 'true',
+      accessibilityOptions: { wcagVersion: 'wcag21aa' }
     }]
   ],
   

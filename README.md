@@ -27,7 +27,7 @@ A test framework for a mortgage **Decision-in-Principle (DIP)** journey: BDD UI 
 | BDD regression | `npm run test:regression` | WebdriverIO + Cucumber | Accepted, Referred and Declined journeys |
 | API | `npm run test:api` | Cucumber (no browser) + Ajv | 26 scenarios: decisions per applicant, response contract, validation, error format, malformed JSON, hostile IDs, response time, calculator |
 | Events | `npm run test:events` | Cucumber (no browser) + Ajv | 15 scenarios: application saved, decision event audited exactly once, each outcome audited, hostile IDs on the audit trail |
-| Accessibility | `npm run test:a11y` | axe-core | Automated WCAG 2.1 AA rules on the DIP page |
+| Accessibility | `npm run test:a11y` | WebdriverIO + Cucumber + axe-core | 9 scenarios: WCAG 2.1 AA scans of the form and each result, keyboard-only journey, visible focus, screen reader announcement, reflow at 320px, one main heading |
 | Page performance | `npm run test:lighthouse` | Lighthouse CI | Budgets on the DIP page: performance, accessibility and best-practice scores, LCP, CLS and TBT (fails the build) |
 | Timing | `npm run test:perf` | WebdriverIO | Quick browser timings of the journey against the mock server |
 | Repeatability | `npm run test:stress` | WebdriverIO | The journey 5 times in a row, with timing variance |
@@ -52,7 +52,22 @@ The API features also check robustness: malformed JSON, hostile IDs (NoSQL and S
 
 Run it against the real web app (`BASE_URL=http://localhost:8090 npm run test:lighthouse` with a sit-01 port-forward); the mock server's page is a stand-in, so its numbers say little. Chrome is found automatically, or set `CHROME_PATH`. These are lab numbers for catching regressions against a budget, not real-user measurements.
 
-The accessibility and timing checks are automated signals, not a compliance audit or a load test: axe-core finds a subset of WCAG issues, and the timings come from a local mock server.
+### Accessibility
+
+[`dip-accessibility.feature`](features/features/dip-accessibility.feature) (tag `@a11y`, also part of `@regression`):
+
+| Scenario | WCAG 2.1 |
+| --- | --- |
+| No critical or serious axe-core violations on the empty form and on each decision result (Accepted, Referred, Declined) | A and AA rules |
+| Complete the journey using only the keyboard | 2.1.1 Keyboard |
+| Every form control shows a visible focus indicator | 2.4.7 Focus Visible |
+| The decision is announced to screen readers (live region) | 4.1.3 Status Messages |
+| The page fits at 320 CSS pixels without sideways scrolling | 1.4.10 Reflow |
+| The page has one main heading | 1.3.1 (best practice) |
+
+Which impacts fail a scenario is set by `A11Y_IMPACTS` (default `critical,serious`); the full axe results are attached to the Allure report. On BrowserStack (`npm run test:bstack:a11y`) the same scenarios run in Chrome, Firefox and Safari; set `BROWSERSTACK_ACCESSIBILITY=true` to also get BrowserStack Accessibility Testing scans in its dashboard (a separate BrowserStack product). `npm run test:a11y:scan` is a quick standalone axe scan of the empty form.
+
+Automated checks find part of WCAG only: screen reader behaviour, zoom to 200% and whether content makes sense stay manual checks. The timing checks come from a local mock server and are not a load test.
 
 ## Quick start
 
@@ -145,7 +160,7 @@ It needs persistence switched on, so run it against `mock` or `sit-01`. Duplicat
 
 | Workflow | When | What |
 | --- | --- | --- |
-| [Smoke tests](.github/workflows/smoke-tests.yml) | Every push, and after a merge to `main` | Starts the mock server, runs the smoke suite in headless Chrome, uploads Allure results |
+| [Smoke tests](.github/workflows/smoke-tests.yml) | Every push, and after a merge to `main` | Starts the mock server, runs the smoke and accessibility scenarios in headless Chrome, uploads Allure results |
 | [AIP microservices E2E](.github/workflows/aip-e2e.yml) | Every push and pull request | Builds aip-api and aip-webapp from their repos, runs the API, BDD and Lighthouse suites against them, uploads .NET code coverage and the reports |
 | CI failure triage | When either workflow fails | Comments the failed steps on the pull request (or opens an issue) and requests a human review; it never pushes or merges |
 
@@ -163,11 +178,12 @@ The [Jenkinsfile](Jenkinsfile) installs dependencies, lints, starts the mock ser
 
 | Parameter | Values | Purpose |
 | --- | --- | --- |
-| `TEST_SUITE` | `smoke`, `regression`, `api`, `events`, `lighthouse`, `all` | Which suite to run (`all` = smoke, regression and api) |
+| `TEST_SUITE` | `smoke`, `regression`, `api`, `events`, `a11y`, `lighthouse`, `all` | Which suite to run (`all` = smoke, regression and api) |
 | `ENVIRONMENT` | `mock` (default), `sit-01`, `sit-02` | The mock server, or a deployed AIP environment |
 | `BASE_URL` | empty, or a URL | Overrides the environment's URL, e.g. `http://localhost:8090` for a port-forward |
 | `AUDIT_URL` | empty, or a URL | `events` only: the audit service. Empty = the mock for `mock`, `http://localhost:8091` for SIT |
 | `BROWSER` | `local`, `browserstack` | Local Chrome or BrowserStack |
+| `BROWSERSTACK_ACCESSIBILITY` | `off` (default), `on` | With `BROWSER=browserstack`: also run BrowserStack Accessibility Testing scans (needs it on your BrowserStack plan) |
 | `USE_DOCKER` | `false` (default), `true` | Run the tests in the Docker image from the [Dockerfile](Dockerfile) |
 
 For `sit-01` and `sit-02`, set `BASE_URL` (for example `http://localhost:8090`), or define the Jenkins variables `SIT_01_URL` and `SIT_02_URL`.
@@ -190,6 +206,7 @@ The Dockerfile sets `CHROME_BIN` and `CHROMEDRIVER_PATH`, and [wdio.conf.js](wdi
 export BROWSERSTACK_USERNAME=...
 export BROWSERSTACK_ACCESS_KEY=...
 npm run test:bstack:smoke          # Chrome, Firefox and Safari
+npm run test:bstack:a11y           # accessibility scenarios on the same browsers
 npm run test:bstack:regression
 npm run test:compat                # wider matrix defined in wdio.compatibility.conf.js
 ```

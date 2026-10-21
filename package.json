@@ -7,7 +7,7 @@
     "test:regression": "wdio run wdio.conf.js --cucumberOpts.tags '@regression'",
     "test:perf": "node perf-test.js",
     "test:stress": "node perf-stress-test.js",
-    "test:a11y": "node a11y-test.js",
+    "test:a11y": "wdio run wdio.conf.js --cucumberOpts.tags '@a11y'",
     "test:api": "cucumber-js --profile api",
     "test:events": "cucumber-js --profile events",
     "test:bstack:smoke": "wdio run wdio.browserstack.conf.js --cucumberOpts.tags '@smoke'",
@@ -22,7 +22,9 @@
     "test:smoke:report": "npm run test:smoke && npm run report:view",
     "test:regression:report": "npm run test:regression && npm run report:view",
     "generate:ticket": "node scripts/generate-ticket-gherkin.js",
-    "test:lighthouse": "lhci collect --config=lighthouserc.js && lhci upload --config=lighthouserc.js && lhci assert --config=lighthouserc.js"
+    "test:lighthouse": "lhci collect --config=lighthouserc.js && lhci upload --config=lighthouserc.js && lhci assert --config=lighthouserc.js",
+    "test:a11y:scan": "node a11y-test.js",
+    "test:bstack:a11y": "wdio run wdio.browserstack.conf.js --cucumberOpts.tags '@a11y'"
   },
   "devDependencies": {
     "@axe-core/webdriverio": "^4.14.0",
