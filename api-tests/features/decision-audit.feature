@@ -79,5 +79,9 @@ Feature: Decisions saved and audited
     Examples:
       | problem        | id               |
       | NoSQL operator | {"$ne": null}    |
-      | path traversal | ../../etc/passwd |
       | SQL injection  | ' OR '1'='1      |
+
+  Scenario: Never expose server files through path traversal in an audit trail ID
+    When I fetch the audit trail for ID ../../etc/passwd
+    Then the response is not a server error
+    And the response does not contain "root:"

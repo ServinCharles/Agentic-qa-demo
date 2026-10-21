@@ -35,6 +35,14 @@ Then('the decision is {string}', function (expected) {
   assert.equal(this.decision?.decision, expected, `Expected ${expected}, got ${JSON.stringify(this.response.body)}`);
 });
 
+Then('the response is not a server error', function () {
+  assert.ok(this.response.status < 500, `Got a server error ${this.response.status}: ${this.response.raw}`);
+});
+
+Then('the response does not contain {string}', function (text) {
+  assert.ok(!this.response.raw.includes(text), `The response contains "${text}": ${this.response.raw.slice(0, 200)}`);
+});
+
 Then('the error message is {string}', function (expected) {
   assert.equal(this.response.body?.error, expected, `Expected error "${expected}", got ${this.response.raw}`);
 });

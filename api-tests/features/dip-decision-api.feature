@@ -87,10 +87,17 @@ Feature: DIP decision API
     Examples:
       | problem          | id                        |
       | NoSQL operator   | {"$ne": null}             |
-      | path traversal   | ../../etc/passwd          |
       | SQL injection    | ' OR '1'='1               |
       | script tag       | <script>alert(1)</script> |
       | lower-case ID    | aip-20261021-abcdef12     |
+
+  # Through the web app, nginx resolves "../" before routing, so the request never reaches aip-api and
+  # the web page is served instead (200). Called directly, aip-api rejects it (400). Either way is safe:
+  # what matters is no server error and no file contents in the response.
+  Scenario: Never expose server files through path traversal in an application ID
+    When I fetch the application ID ../../etc/passwd
+    Then the response is not a server error
+    And the response does not contain "root:"
 
   Scenario: Reject a very long application ID without a server error
     When I fetch the application with an ID of 1000 characters
