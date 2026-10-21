@@ -7,8 +7,8 @@ pipeline {
     parameters {
         choice(
             name: 'TEST_SUITE',
-            choices: ['smoke', 'regression', 'api', 'events', 'all'],
-            description: 'Test suite to run. events = application saved (MongoDB) and decision audited (Kafka); needs persistence on, so mock or sit-01. all = smoke, regression and api'
+            choices: ['smoke', 'regression', 'api', 'events', 'lighthouse', 'all'],
+            description: 'Test suite to run. events = application saved (MongoDB) and decision audited (Kafka); needs persistence on, so mock or sit-01. lighthouse = page performance budgets (use against the real web app, e.g. sit-01). all = smoke, regression and api'
         )
         choice(
             name: 'ENVIRONMENT',
@@ -157,6 +157,22 @@ pipeline {
             post {
                 always {
                     archiveArtifacts artifacts: 'reports/events-tests.html', allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Run Lighthouse') {
+            when {
+                expression { params.TEST_SUITE == 'lighthouse' }
+            }
+            steps {
+                echo "🚦 Lighthouse page performance budgets on ${env.BASE_URL}..."
+                // Uses the Chrome installed on the Jenkins machine (headless)
+                sh 'npm run test:lighthouse'
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'reports/lighthouse/**', allowEmptyArchive: true
                 }
             }
         }

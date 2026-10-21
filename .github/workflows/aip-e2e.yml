@@ -57,6 +57,10 @@ jobs:
       - name: BDD regression tests
         run: npm run test:regression
 
+      # Page performance budgets on the real web app (Lighthouse CI, Chrome on the runner)
+      - name: Lighthouse page performance
+        run: npm run test:lighthouse
+
       - name: Stop API and collect coverage
         if: always()
         run: |
