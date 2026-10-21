@@ -16,16 +16,18 @@
     "test:compat": "wdio run wdio.compatibility.conf.js",
     "test:compat:full": "wdio run wdio.compatibility.conf.js --cucumberOpts.tags ''",
     "test:all": "node run-all-tests.js",
-    "lint": "eslint features/ api-tests/ cucumber.js",
+    "lint": "eslint features/ api-tests/ cucumber.js lighthouserc.js",
     "wdio": "wdio run ./wdio.conf.js",
     "report:view": "node allure-report-viewer.js",
     "test:smoke:report": "npm run test:smoke && npm run report:view",
     "test:regression:report": "npm run test:regression && npm run report:view",
-    "generate:ticket": "node scripts/generate-ticket-gherkin.js"
+    "generate:ticket": "node scripts/generate-ticket-gherkin.js",
+    "test:lighthouse": "lhci collect --config=lighthouserc.js && lhci upload --config=lighthouserc.js && lhci assert --config=lighthouserc.js"
   },
   "devDependencies": {
     "@axe-core/webdriverio": "^4.14.0",
     "@cucumber/cucumber": "^10.9.0",
+    "@lhci/cli": "^0.15.1",
     "@wdio/allure-reporter": "^9.32.0",
     "@wdio/browserstack-service": "^9.41.0",
     "@wdio/cli": "^9.32.0",

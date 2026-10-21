@@ -28,13 +28,29 @@ A test framework for a mortgage **Decision-in-Principle (DIP)** journey: BDD UI 
 | API | `npm run test:api` | Cucumber (no browser) + Ajv | 26 scenarios: decisions per applicant, response contract, validation, error format, malformed JSON, hostile IDs, response time, calculator |
 | Events | `npm run test:events` | Cucumber (no browser) + Ajv | 15 scenarios: application saved, decision event audited exactly once, each outcome audited, hostile IDs on the audit trail |
 | Accessibility | `npm run test:a11y` | axe-core | Automated WCAG 2.1 AA rules on the DIP page |
-| Timing | `npm run test:perf` | WebdriverIO | Page load and interaction timings against the mock server |
+| Page performance | `npm run test:lighthouse` | Lighthouse CI | Budgets on the DIP page: performance, accessibility and best-practice scores, LCP, CLS and TBT (fails the build) |
+| Timing | `npm run test:perf` | WebdriverIO | Quick browser timings of the journey against the mock server |
 | Repeatability | `npm run test:stress` | WebdriverIO | The journey 5 times in a row, with timing variance |
 | Cross-browser | `npm run test:bstack` | BrowserStack | Chrome, Firefox and Safari |
 
 The API and events features write JUnit XML and an HTML report to `reports/`. Jenkins shows the JUnit results, archives the HTML report, and copies the JUnit results into the Allure report.
 
 The API features also check robustness: malformed JSON, hostile IDs (NoSQL and SQL injection strings, path traversal, script tags, over-long IDs) must get a 400 with the standard `{ error, details }` body, never a 500, and key endpoints must answer within `MAX_RESPONSE_MS`.
+
+### Page performance (Lighthouse CI)
+
+`lighthouserc.js` runs Lighthouse 3 times on `BASE_URL/mortgages/decision-in-principle` (mobile, simulated slow 4G and CPU, Lighthouse's default) and checks the median run against budgets. Reports (HTML and JSON per run) go to `reports/lighthouse/`.
+
+| Budget | Limit | On breach |
+| --- | --- | --- |
+| Performance, accessibility, best-practices scores | at least 90 | fails |
+| Largest Contentful Paint (LCP) | 2.5 s | fails |
+| Cumulative Layout Shift (CLS) | 0.1 | fails |
+| Total Blocking Time (TBT) | 200 ms | fails |
+| SEO score, First Contentful Paint (1.8 s) | | warning |
+| Text compression, cache lifetimes, render-blocking resources, meta description | | warning |
+
+Run it against the real web app (`BASE_URL=http://localhost:8090 npm run test:lighthouse` with a sit-01 port-forward); the mock server's page is a stand-in, so its numbers say little. Chrome is found automatically, or set `CHROME_PATH`. These are lab numbers for catching regressions against a budget, not real-user measurements.
 
 The accessibility and timing checks are automated signals, not a compliance audit or a load test: axe-core finds a subset of WCAG issues, and the timings come from a local mock server.
 
@@ -130,7 +146,7 @@ It needs persistence switched on, so run it against `mock` or `sit-01`. Duplicat
 | Workflow | When | What |
 | --- | --- | --- |
 | [Smoke tests](.github/workflows/smoke-tests.yml) | Every push, and after a merge to `main` | Starts the mock server, runs the smoke suite in headless Chrome, uploads Allure results |
-| [AIP microservices E2E](.github/workflows/aip-e2e.yml) | Every push and pull request | Builds aip-api and aip-webapp from their repos, runs the API and BDD suites against them, uploads .NET code coverage |
+| [AIP microservices E2E](.github/workflows/aip-e2e.yml) | Every push and pull request | Builds aip-api and aip-webapp from their repos, runs the API, BDD and Lighthouse suites against them, uploads .NET code coverage and the reports |
 | CI failure triage | When either workflow fails | Comments the failed steps on the pull request (or opens an issue) and requests a human review; it never pushes or merges |
 
 `main` is protected: changes go through a pull request, and the CI checks must pass before merging.
@@ -147,7 +163,7 @@ The [Jenkinsfile](Jenkinsfile) installs dependencies, lints, starts the mock ser
 
 | Parameter | Values | Purpose |
 | --- | --- | --- |
-| `TEST_SUITE` | `smoke`, `regression`, `api`, `events`, `all` | Which suite to run (`all` = smoke, regression and api) |
+| `TEST_SUITE` | `smoke`, `regression`, `api`, `events`, `lighthouse`, `all` | Which suite to run (`all` = smoke, regression and api) |
 | `ENVIRONMENT` | `mock` (default), `sit-01`, `sit-02` | The mock server, or a deployed AIP environment |
 | `BASE_URL` | empty, or a URL | Overrides the environment's URL, e.g. `http://localhost:8090` for a port-forward |
 | `AUDIT_URL` | empty, or a URL | `events` only: the audit service. Empty = the mock for `mock`, `http://localhost:8091` for SIT |

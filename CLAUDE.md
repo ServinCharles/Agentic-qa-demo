@@ -70,4 +70,5 @@ Jenkinsfile                CI pipeline
 - `npm run test:smoke` — smoke pack, headless Chrome
 - `npm run test:regression` — full regression pack
 - `npm run test:api` / `npm run test:events` — API and events suites (need the mock server or BASE_URL)
+- `npm run test:lighthouse` — Lighthouse CI page performance budgets (lighthouserc.js; point BASE_URL at the real web app)
 - `npm run lint` — ESLint over features/
