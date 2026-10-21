@@ -1,22 +1,21 @@
-# .claude/ — Agent Development Kit
+# .claude/: AI assistant instructions
 
-This directory contains configuration files for GitHub Copilot (Claude) to extend and maintain this test automation framework. It defines skills, hooks, and specialized agents that automate common QA tasks.
+Written instructions for an AI coding assistant (Claude Code or GitHub Copilot) working on this framework: task guides, checklists and agent workflows for common QA tasks. They are guidance the assistant follows, not executable automation: lint and tests are enforced by CI.
 
 ## Directory Structure
 
 ```
 .claude/
-├── skills/                    # Reusable workflows for common tasks
+├── skills/                    # Task guides
 │   ├── write-feature.md       # Create BDD feature files
-│   ├── write-page-object.md   # Create page objects
 │   ├── write-step-definitions.md  # Create step definitions
 │   └── generate-from-jira-ticket.md # Optional MCP ticket-to-scenario flow
 │
-├── hooks/                     # Automated checks at key points
+├── hooks/                     # Checklists (not executable hooks)
 │   ├── pre-commit.md          # Security & code quality gate
 │   └── post-test.md           # Test failure analysis
 │
-└── agents/                    # Specialized autonomous workflows
+└── agents/                    # Step-by-step agent workflows
     ├── test-writer.md         # Creates complete test artefacts
     ├── bug-triage.md          # Debugs failing tests
     └── regression-prevention.md # Flags missing test coverage
@@ -30,13 +29,6 @@ Create Gherkin feature files with proper tagging and scenario structure.
 - Ensures every new feature has `@smoke` scenario
 - Links to corresponding step definitions
 - Run: `npm run test:smoke` to verify locally
-
-### [Write Page Object](skills/write-page-object.md)
-Create page objects following the Page Object Model pattern.
-- Enforces naming (`camelCase.page.js`)
-- Centralizes all selectors
-- Separates actions from assertions
-- No hardcoded test data
 
 ### [Write Step Definitions](skills/write-step-definitions.md)
 Implement Cucumber step definitions that map Gherkin to page objects.
@@ -53,18 +45,20 @@ Optional MCP-based workflow to generate BDD scenarios from a Jira ticket.
 - Requires user confirmation before writing files
 - Falls back to manual requirement flow if MCP is unavailable
 
-## Hooks
+## Checklists
 
-### [Pre-Commit Hook](hooks/pre-commit.md)
-Automated security and quality gate before code is committed.
+These are written checklists the assistant works through. They are not wired up as git hooks or Claude Code hooks.
+
+### [Pre-Commit Checklist](hooks/pre-commit.md)
+Security and quality checks before code is committed.
 - ✅ No hardcoded credentials/PII
 - ✅ Linting passes (`npm run lint`)
 - ✅ Smoke tests pass locally
 - ✅ Naming conventions followed
 - ✅ No `browser.pause()` calls
 
-### [Post-Test Hook](hooks/post-test.md)
-Automated analysis after tests run.
+### [Post-Test Checklist](hooks/post-test.md)
+Analysis after a test run.
 - Checks exit codes
 - Diagnoses failure root causes
 - Suggests `@quarantine` tag instead of test deletion
@@ -76,7 +70,7 @@ Automated analysis after tests run.
 ### [Test Writer Agent](agents/test-writer.md)
 **Trigger:** "Write a test for...", "Create a feature that..."
 
-Autonomous workflow to create complete BDD tests from requirements:
+Workflow to create complete BDD tests from requirements:
 1. Asks clarifying questions
 2. Creates feature file
 3. Creates/updates page object
@@ -89,7 +83,7 @@ Autonomous workflow to create complete BDD tests from requirements:
 ### [Bug Triage Agent](agents/bug-triage.md)
 **Trigger:** "Why is test X failing?", "Debug this"
 
-Autonomous debugging workflow:
+Debugging workflow:
 1. Gathers failure info (error message, stack trace, exit code)
 2. Diagnoses by test type (BDD, API, Performance, A11y)
 3. Identifies root cause (mock server down, stale selector, API schema, etc.)
@@ -112,13 +106,7 @@ Analyzes code changes and recommends new test scenarios:
 
 ## Usage
 
-### Automatic
-Hooks run automatically:
-- **Pre-commit:** Gate before code is committed (if configured)
-- **Post-test:** Runs after any test suite completes
-
-### Manual / Explicit
-Invoke agents by asking Copilot directly:
+Ask the assistant directly:
 ```
 "Write a test for the loan approval flow"
 "Why is the accessibility test failing?"
@@ -143,7 +131,7 @@ All agents follow the principles from `CLAUDE.md`:
 
 ## Integration
 
-These files are read-only configuration. The agent (GitHub Copilot / Claude) uses them to:
+The assistant reads these files to:
 - Understand the repo's conventions and constraints
 - Apply consistent patterns when creating/modifying code
 - Make informed decisions about test coverage and debugging

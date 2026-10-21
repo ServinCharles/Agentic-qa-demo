@@ -8,7 +8,7 @@
 BDD test automation framework for a retail banking web application
 (Mortgage Decision-in-Principle journey). Stack:
 
-- WebdriverIO 8 + Cucumber BDD (JavaScript)
+- WebdriverIO 9 + Cucumber BDD (JavaScript)
 - Page Object Model under `features/pages/` and `features/Locators/`
 - Feature files under `features/`, step definitions under `features/step-definitions/`
 - CI: Jenkins (Jenkinsfile in repo root)
@@ -59,6 +59,7 @@ features/step-definitions/ Cucumber step definitions
 features/pages/                    Page Object Model classes
 features/Locators/                 Selector files used by pages
 test-data/                 Synthetic test data (JSON)
+api-test.js, events-test.js API and events suites (Node.js, JUnit XML to reports/)
 .claude/                   Agent configuration (skills, hooks, subagents)
 wdio.conf.js               Local WebdriverIO config
 Jenkinsfile                CI pipeline
@@ -68,4 +69,5 @@ Jenkinsfile                CI pipeline
 
 - `npm run test:smoke` — smoke pack, headless Chrome
 - `npm run test:regression` — full regression pack
+- `npm run test:api` / `npm run test:events` — API and events suites (need the mock server or BASE_URL)
 - `npm run lint` — ESLint over features/
