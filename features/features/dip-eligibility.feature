@@ -4,27 +4,32 @@ Feature: DIP affordability assessment
   I want an instant affordability decision
   So that I know my borrowing range before a full application
 
+  # Applicant details come from test-data/applicants.json (standardApplicant, referredApplicant, declinedApplicant)
+
   Background:
     Given a new Decision-in-Principle journey has started
 
-  @smoke
-  Scenario: Accept an applicant within standard affordability limits
-    Given the applicant declares an annual income of £45,000
+  Scenario Outline: Give a <decision> decision to a <applicant> applicant
+    When the <applicant> applicant requests a decision
+    Then the decision is "<decision>"
+    And the <detail> is displayed
+
+    @smoke
+    Examples: Within standard affordability limits
+      | applicant | decision | detail                   |
+      | standard  | Accepted | maximum borrowing amount |
+
+    Examples: Loan above the income multiple cap
+      | applicant | decision | detail                    |
+      | referred  | Referred | referral guidance message |
+
+    @e2e
+    Examples: Excessive existing commitments
+      | applicant | decision | detail                   |
+      | declined  | Declined | maximum borrowing amount |
+
+  Scenario: Accept a loan exactly at the 4.5x income multiple cap
+    Given the applicant declares an annual income of £40,000
     And they have no existing credit commitments
-    When they request a decision for a £150,000 loan
+    When they request a decision for a £180,000 loan
     Then the decision is "Accepted"
-    And the maximum borrowing amount is displayed
-
-  Scenario: Refer an applicant whose loan exceeds the income multiple cap
-    Given the applicant declares an annual income of £30,000
-    And they have no existing credit commitments
-    When they request a decision for a £200,000 loan
-    Then the decision is "Referred"
-    And the referral guidance message is displayed
-
-  @e2e
-  Scenario: Decline an applicant with excessive existing commitments
-    Given the applicant declares an annual income of £45,000
-    And they have monthly credit commitments of £1,800
-    When they request a decision for a £150,000 loan
-    Then the decision is "Declined"
