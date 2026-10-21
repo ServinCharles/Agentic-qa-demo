@@ -378,6 +378,38 @@ A [sample Allure report](https://servincharles.github.io/Agentic-qa-demo/report/
 | --- | --- |
 | ![BrowserStack builds](docs/images/browserstack-builds.png) | ![BrowserStack sessions](docs/images/browserstack-sessions.png) |
 
+### API run on sit-01
+
+Allure report for the API suite against `sit-01`: 26 test cases passed. This is evidence of one successful run.
+
+![Allure API report showing 26 passing test cases on sit-01](docs/images/allure-api-sit-01.png)
+
+### Events run on sit-01
+
+Allure report for the events suite against `sit-01`: 15 test cases passed. This is evidence of one successful run.
+
+![Allure events report showing 15 passing test cases on sit-01](docs/images/allure-events-sit-01.png)
+
+### Compatibility run on sit-01
+
+Allure report from a BrowserStack compatibility run against `sit-01` on 21 October 2026: 5 test cases passed. This is evidence of one successful run, not full coverage of the documented browser/device matrix.
+
+![Allure compatibility report showing 5 passing test cases on sit-01](docs/images/allure-compatibility-sit-01.png)
+
+The BrowserStack build below is a separate completed compatibility run: all 9 unique tests passed (100%). The visible results include Chrome on Windows 10 and Firefox/Safari on macOS; this single build is not evidence that the full documented browser/device matrix has passed.
+
+![BrowserStack compatibility build showing all 9 tests passed](docs/images/browserstack-compatibility-sit-01.png)
+
+### Accessibility run on sit-01
+
+Allure report from a BrowserStack accessibility run against `sit-01` on 21 October 2026: 27 test cases passed. This is evidence of one successful run, not a claim of complete WCAG conformance or full browser-matrix coverage.
+
+![Allure accessibility report showing 27 passing test cases on sit-01](docs/images/allure-accessibility-sit-01.png)
+
+The BrowserStack capture below shows a separate accessibility build with 27 unique tests: 24 passed and 3 were still in progress when captured. Although BrowserStack displayed “QG Passed,” this is an in-progress snapshot, not a final all-tests-passed result. Account details have been redacted.
+
+![BrowserStack accessibility build showing 24 of 27 tests passed and 3 in progress](docs/images/browserstack-accessibility-sit-01.png)
+
 ## Troubleshooting
 
 | Problem | Fix |
