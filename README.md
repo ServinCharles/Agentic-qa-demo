@@ -25,14 +25,16 @@ A test framework for a mortgage **Decision-in-Principle (DIP)** journey: BDD UI 
 | --- | --- | --- | --- |
 | BDD smoke | `npm run test:smoke` | WebdriverIO + Cucumber | `@smoke` scenarios of the DIP journey |
 | BDD regression | `npm run test:regression` | WebdriverIO + Cucumber | Accepted, Referred and Declined journeys |
-| API | `npm run test:api` | Cucumber (no browser) + Ajv | 11 scenarios: decisions per applicant, response contract, validation, high loan-to-income, calculator |
-| Events | `npm run test:events` | Cucumber (no browser) + Ajv | 12 scenarios: application saved, decision event audited exactly once, each outcome audited |
+| API | `npm run test:api` | Cucumber (no browser) + Ajv | 26 scenarios: decisions per applicant, response contract, validation, error format, malformed JSON, hostile IDs, response time, calculator |
+| Events | `npm run test:events` | Cucumber (no browser) + Ajv | 15 scenarios: application saved, decision event audited exactly once, each outcome audited, hostile IDs on the audit trail |
 | Accessibility | `npm run test:a11y` | axe-core | Automated WCAG 2.1 AA rules on the DIP page |
 | Timing | `npm run test:perf` | WebdriverIO | Page load and interaction timings against the mock server |
 | Repeatability | `npm run test:stress` | WebdriverIO | The journey 5 times in a row, with timing variance |
 | Cross-browser | `npm run test:bstack` | BrowserStack | Chrome, Firefox and Safari |
 
 The API and events features write JUnit XML and an HTML report to `reports/`. Jenkins shows the JUnit results, archives the HTML report, and copies the JUnit results into the Allure report.
+
+The API features also check robustness: malformed JSON, hostile IDs (NoSQL and SQL injection strings, path traversal, script tags, over-long IDs) must get a 400 with the standard `{ error, details }` body, never a 500, and key endpoints must answer within `MAX_RESPONSE_MS`.
 
 The accessibility and timing checks are automated signals, not a compliance audit or a load test: axe-core finds a subset of WCAG issues, and the timings come from a local mock server.
 
@@ -193,6 +195,8 @@ BrowserStack can't reach `localhost` directly: point `BASE_URL` at a publicly re
 | --- | --- | --- |
 | `BASE_URL` | `http://localhost:3000` | Application under test |
 | `AUDIT_URL` | same as `BASE_URL` | Audit service for the events suite |
+| `EVENT_TIMEOUT_MS` | `15000` | How long the events suite waits for an event to be audited |
+| `MAX_RESPONSE_MS` | `1000` | Response time limit in the API timing scenarios |
 | `BROWSERSTACK_USERNAME`, `BROWSERSTACK_ACCESS_KEY` | | BrowserStack account |
 | `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN` | | Optional Jira MCP ticket fetch |
 

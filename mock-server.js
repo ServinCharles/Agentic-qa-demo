@@ -41,6 +41,18 @@ function sendJson(res, status, body) {
   res.end(JSON.stringify(body));
 }
 
+// Like aip-api: anything that isn't a JSON object (invalid JSON, an array, null) is "Invalid JSON"
+function parseJsonObject(text) {
+  const data = JSON.parse(text);
+  if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Not a JSON object');
+  return data;
+}
+
+// A malformed %-escape in an ID is just an invalid ID (400), not a crash
+function decodePathSegment(segment) {
+  try { return decodeURIComponent(segment); } catch { return segment; }
+}
+
 // DIP Decision Logic - Corrected
 function calculateDIPDecision(annualIncome, loanAmount, existingCommitments) {
   // Validation
@@ -173,7 +185,7 @@ const server = http.createServer((req, res) => {
     req.on('data', chunk => { body += chunk; });
     req.on('end', () => {
       try {
-        const data = JSON.parse(body);
+        const data = parseJsonObject(body);
         const result = calculateDIPDecision(data.annualIncome, data.loanAmount, data.existingCommitments);
         
         if (result.error) {
@@ -204,7 +216,7 @@ const server = http.createServer((req, res) => {
     req.on('data', chunk => { body += chunk; });
     req.on('end', () => {
       try {
-        const data = JSON.parse(body);
+        const data = parseJsonObject(body);
         if (!data.annualIncome) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: 'Missing annualIncome' }));
@@ -233,7 +245,7 @@ const server = http.createServer((req, res) => {
   // API: saved application (aip-api, persistence on)
   const applicationMatch = pathname.match(/^\/api\/applications\/([^/]+)$/);
   if (applicationMatch && req.method === 'GET') {
-    const applicationId = decodeURIComponent(applicationMatch[1]);
+    const applicationId = decodePathSegment(applicationMatch[1]);
     if (!APPLICATION_ID.test(applicationId)) {
       sendJson(res, 400, { error: 'Invalid application ID', details: ['Expected AIP-yyyyMMdd-XXXXXXXX'] });
     } else if (!applications.has(applicationId)) {
@@ -247,7 +259,7 @@ const server = http.createServer((req, res) => {
   // API: audit trail (aip-audit-service)
   const auditMatch = pathname.match(/^\/api\/audit\/([^/]+)$/);
   if (auditMatch && req.method === 'GET') {
-    const applicationId = decodeURIComponent(auditMatch[1]);
+    const applicationId = decodePathSegment(auditMatch[1]);
     if (!APPLICATION_ID.test(applicationId)) {
       sendJson(res, 400, { error: 'Invalid application ID', details: ['Expected AIP-yyyyMMdd-XXXXXXXX'] });
     } else {

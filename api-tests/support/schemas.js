@@ -71,6 +71,16 @@ const schemas = {
     not: { required: ['annualIncome'] }
   },
 
+  // Every 4xx answer: { "error": "...", "details": [...] } (details optional, may be null)
+  error: {
+    type: 'object',
+    required: ['error'],
+    properties: {
+      error: { type: 'string', minLength: 1 },
+      details: { anyOf: [{ type: 'array', items: { type: 'string' } }, { type: 'null' }] }
+    }
+  },
+
   auditTrail: {
     type: 'object',
     required: ['applicationId', 'events'],

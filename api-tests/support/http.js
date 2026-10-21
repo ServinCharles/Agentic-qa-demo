@@ -1,4 +1,5 @@
 // Minimal JSON HTTP client for the API and events features (no browser needed).
+// A string body is sent as-is (to test malformed JSON); anything else is sent as JSON.
 const http = require('http');
 const https = require('https');
 
@@ -6,6 +7,7 @@ const REQUEST_TIMEOUT_MS = 10000;
 
 function request(baseUrl, method, urlPath, data = null) {
   return new Promise((resolve, reject) => {
+    const started = Date.now();
     const target = new URL(baseUrl + urlPath);
     const req = (target.protocol === 'https:' ? https : http).request({
       hostname: target.hostname,
@@ -20,7 +22,7 @@ function request(baseUrl, method, urlPath, data = null) {
       res.on('end', () => {
         let body = null;
         try { body = raw ? JSON.parse(raw) : null; } catch { body = null; }
-        resolve({ status: res.statusCode, headers: res.headers, body, raw });
+        resolve({ status: res.statusCode, headers: res.headers, body, raw, durationMs: Date.now() - started });
       });
     });
     req.on('timeout', () => req.destroy(new Error(`Timed out calling ${baseUrl}`)));
@@ -29,7 +31,11 @@ function request(baseUrl, method, urlPath, data = null) {
       const reason = error.message || error.code || error.errors?.[0]?.code || String(error);
       reject(new Error(`${reason} (${baseUrl})`));
     });
-    if (data) req.write(JSON.stringify(data));
+    if (typeof data === 'string') {
+      if (data) req.write(data);
+    } else if (data) {
+      req.write(JSON.stringify(data));
+    }
     req.end();
   });
 }
