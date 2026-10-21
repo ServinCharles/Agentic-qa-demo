@@ -13,6 +13,7 @@ allure-report/
 test-report.html
 api-test-report.html
 logs/
+reports/
 
 # WebdriverIO artefacts
 screenshots/

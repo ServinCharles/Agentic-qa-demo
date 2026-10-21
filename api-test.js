@@ -447,6 +447,17 @@ class APITester {
     fs.writeFileSync(reportPath, report);
     console.log(`📄 API report saved to: ${reportPath}`);
 
+    // JUnit XML for Jenkins (junit '**/reports/**/*.xml') and the Allure report
+    const reportDir = path.join(__dirname, 'reports');
+    fs.mkdirSync(reportDir, { recursive: true });
+    const cases = this.results.map(result => {
+      const errors = [...(result.errors || []), ...(result.error ? [result.error] : [])];
+      const failure = result.passed ? '' : `<failure message="${escapeHtml(errors.join('; ') || 'Failed')}"/>`;
+      return `  <testcase classname="api" name="${escapeHtml(result.name)}" time="${((result.duration || 0) / 1000).toFixed(3)}">${failure}</testcase>`;
+    }).join('\n');
+    fs.writeFileSync(path.join(reportDir, 'api-tests.xml'),
+      `<?xml version="1.0" encoding="UTF-8"?>\n<testsuite name="API" tests="${this.results.length}" failures="${this.failed}">\n${cases}\n</testsuite>\n`);
+
     return this.failed === 0;
   }
 }
