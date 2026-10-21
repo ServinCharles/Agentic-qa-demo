@@ -24,6 +24,13 @@ class DipJourneyPage {
     await this.loanAmountInput.setValue(loanAmount);
     await this.getDecisionButton.click();
   }
+
+  // Fills the form from an applicant in test-data/applicants.json and asks for a decision
+  async requestDecisionFor(applicant) {
+    await this.enterAnnualIncome(String(applicant.annualIncome));
+    await this.enterMonthlyCommitments(String(applicant.monthlyCommitments));
+    await this.requestDecision(String(applicant.requestedLoan));
+  }
 }
 
 module.exports = new DipJourneyPage();
