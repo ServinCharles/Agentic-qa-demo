@@ -218,6 +218,9 @@ pipeline {
             // Archive Allure results
             archiveArtifacts artifacts: 'allure-results/**', allowEmptyArchive: true
 
+            // The api and events suites write JUnit XML (Allure reads it); the BDD suites write Allure results directly
+            sh 'mkdir -p allure-results && cp reports/*.xml allure-results/ 2>/dev/null || true'
+
             // Generate the HTML report that publishHTML serves
             sh 'npx allure generate allure-results --clean -o allure-report || true'
             
