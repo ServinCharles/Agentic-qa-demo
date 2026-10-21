@@ -178,11 +178,12 @@ The [Jenkinsfile](Jenkinsfile) installs dependencies, lints, starts the mock ser
 
 | Parameter | Values | Purpose |
 | --- | --- | --- |
-| `TEST_SUITE` | `smoke`, `regression`, `api`, `events`, `accessibility`, `lighthouse`, `all` | Which suite to run (`all` = smoke, regression and api) |
+| `TEST_SUITE` | `smoke`, `regression`, `api`, `events`, `accessibility`, `compatibility`, `lighthouse`, `all` | Which suite to run (`all` = smoke, regression and api) |
 | `ENVIRONMENT` | `mock` (default), `sit-01`, `sit-02` | The mock server, or a deployed AIP environment |
 | `BASE_URL` | empty, or a URL | Overrides the environment's URL, e.g. `http://localhost:8090` for a port-forward |
 | `AUDIT_URL` | empty, or a URL | `events` only: the audit service. Empty = the mock for `mock`, `http://localhost:8091` for SIT |
 | `BROWSER` | `local`, `browserstack` | Local Chrome or BrowserStack |
+| `COMPATIBILITY_SCOPE` | `smoke` (default), `regression`, `accessibility` | `TEST_SUITE=compatibility` only: which scenarios run on every BrowserStack browser and device |
 | `BROWSERSTACK_ACCESSIBILITY` | `off` (default), `on` | With `BROWSER=browserstack`: also run BrowserStack Accessibility Testing scans (needs it on your BrowserStack plan) |
 | `USE_DOCKER` | `false` (default), `true` | Run the tests in the Docker image from the [Dockerfile](Dockerfile) |
 
@@ -200,20 +201,35 @@ docker run --rm -v "$PWD":/app -v /app/node_modules agentic-qa-demo \
 
 The Dockerfile sets `CHROME_BIN` and `CHROMEDRIVER_PATH`, and [wdio.conf.js](wdio.conf.js) then runs Chrome headless.
 
-## Cross-browser (BrowserStack)
+## Cross-browser and compatibility (BrowserStack)
 
 ```bash
 export BROWSERSTACK_USERNAME=...
 export BROWSERSTACK_ACCESS_KEY=...
-npm run test:bstack:smoke          # Chrome, Firefox and Safari
-npm run test:bstack:accessibility           # accessibility scenarios on the same browsers
+npm run test:bstack:smoke             # Chrome, Firefox and Safari
+npm run test:bstack:accessibility     # accessibility scenarios on the same browsers
 npm run test:bstack:regression
-npm run test:compat                # wider matrix defined in wdio.compatibility.conf.js
+npm run test:compatibility            # @smoke on the full compatibility matrix
+npm run test:compatibility:full       # @regression on the matrix (skips @desktop-only)
 ```
 
-Runs so far cover Chrome (Windows 11), Firefox (Windows 11) and Safari (macOS Ventura). `wdio.compatibility.conf.js` defines a larger matrix (Edge, older versions, iPhone and Pixel) that hasn't been run in full yet.
+**Compatibility matrix** (`wdio.compatibility.conf.js`), BrowserStack only:
 
-BrowserStack can't reach `localhost` directly: point `BASE_URL` at a publicly reachable test environment, or use BrowserStack Local.
+| Platform | Browsers and devices |
+| --- | --- |
+| Windows 11 | Chrome latest, Edge latest, Firefox latest |
+| Windows 10 | Chrome latest-1 |
+| macOS Sequoia | Safari latest, Firefox latest |
+| macOS Sonoma | Safari latest |
+| Real phones | iPhone 15 (iOS 17, Safari), Google Pixel 8 (Android 14, Chrome) |
+
+Versions use BrowserStack's rolling `latest` and `latest-1`, so the matrix doesn't go out of date. Scenarios tagged `@desktop-only` (keyboard-only journey, focus indicator, reflow) are skipped in compatibility runs, because phones have no physical keyboard and don't allow viewport resizing. Up to 5 sessions run in parallel; every session uses BrowserStack minutes.
+
+In Jenkins: `TEST_SUITE=compatibility` with `COMPATIBILITY_SCOPE` = `smoke` (default), `regression` or `accessibility`. It always runs on BrowserStack, whatever `BROWSER` says.
+
+BrowserStack can't reach `localhost` directly. BrowserStack Local (on in both configs) tunnels to `BASE_URL`, so the mock and a sit-01 port-forward both work.
+
+Runs so far cover Chrome (Windows 11), Firefox (Windows 11) and Safari (macOS Ventura) from `wdio.browserstack.conf.js`; the compatibility matrix above hasn't been run in full yet.
 
 ## AI-assisted workflow
 
@@ -269,7 +285,7 @@ curl -X POST http://localhost:3000/api/mortgages/dip/decision \
 ├── mock-server.js                            # mock DIP app on port 3000
 ├── wdio.conf.js                              # local WebdriverIO config
 ├── wdio.browserstack.conf.js                 # BrowserStack: Chrome, Firefox, Safari
-├── wdio.compatibility.conf.js                # wider BrowserStack matrix
+├── wdio.compatibility.conf.js                # BrowserStack compatibility matrix: 7 desktop, 2 real phones
 ├── test-data/                                # synthetic applicants, mock Jira ticket
 ├── scripts/generate-ticket-gherkin.js        # ticket-to-Gherkin draft generator
 ├── AI-generated-features/                    # generated drafts, not run until reviewed

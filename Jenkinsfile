@@ -7,8 +7,8 @@ pipeline {
     parameters {
         choice(
             name: 'TEST_SUITE',
-            choices: ['smoke', 'regression', 'api', 'events', 'accessibility', 'lighthouse', 'all'],
-            description: 'Test suite to run. events = application saved (MongoDB) and decision audited (Kafka); needs persistence on, so mock or sit-01. accessibility = accessibility BDD scenarios (axe-core WCAG 2.1 AA, keyboard, focus, reflow). lighthouse = page performance budgets (use against the real web app, e.g. sit-01). all = smoke, regression and api'
+            choices: ['smoke', 'regression', 'api', 'events', 'accessibility', 'compatibility', 'lighthouse', 'all'],
+            description: 'Test suite to run. events = application saved (MongoDB) and decision audited (Kafka); needs persistence on, so mock or sit-01. accessibility = accessibility BDD scenarios (axe-core WCAG 2.1 AA, keyboard, focus, reflow). compatibility = BrowserStack only: the scenarios in COMPATIBILITY_SCOPE on 7 desktop browsers and 2 real phones. lighthouse = page performance budgets (use against the real web app, e.g. sit-01). all = smoke, regression and api'
         )
         choice(
             name: 'ENVIRONMENT',
@@ -29,6 +29,11 @@ pipeline {
             name: 'BROWSER',
             choices: ['local', 'browserstack'],
             description: 'Browser environment'
+        )
+        choice(
+            name: 'COMPATIBILITY_SCOPE',
+            choices: ['smoke', 'regression', 'accessibility'],
+            description: 'TEST_SUITE=compatibility only: which scenarios to run on every BrowserStack browser and device (regression and accessibility use more BrowserStack minutes)'
         )
         choice(
             name: 'BROWSERSTACK_ACCESSIBILITY',
@@ -202,6 +207,25 @@ pipeline {
                         '''
                     }
                 }
+            }
+        }
+
+        stage('Run Compatibility Tests') {
+            when {
+                expression { params.TEST_SUITE == 'compatibility' }
+            }
+            steps {
+                echo "🌐 BrowserStack compatibility (${params.COMPATIBILITY_SCOPE}): 7 desktop browsers and 2 real phones..."
+                // Always on BrowserStack (BROWSER and USE_DOCKER don't apply). BrowserStack Local reaches BASE_URL.
+                sh '''
+                    case "$COMPATIBILITY_SCOPE" in
+                        regression)    TAGS='@regression and not @desktop-only' ;;
+                        accessibility) TAGS='@a11y and not @desktop-only' ;;
+                        *)             TAGS='@smoke' ;;
+                    esac
+                    BROWSERSTACK_USERNAME="${BROWSERSTACK_USER}" BROWSERSTACK_ACCESS_KEY="${BROWSERSTACK_KEY}" \
+                        npx wdio run wdio.compatibility.conf.js --cucumberOpts.tags "$TAGS"
+                '''
             }
         }
 
