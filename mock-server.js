@@ -119,18 +119,40 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // No icon: answer 204 so browsers don't log a 404 error in the console
+  if (pathname === '/favicon.ico') {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
   // Health check / UI page
   if ((pathname === '/' || pathname === '/mortgages/decision-in-principle') && req.method === 'GET') {
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    res.write(`
-      <html>
-        <head><title>DIP Mortgage</title></head>
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    // Standard document head, like the real aip-webapp (doctype, language, charset, mobile viewport)
+    res.write(`<!DOCTYPE html>
+      <html lang="en-GB">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <meta name="description" content="Mock Decision-in-Principle page for test automation (synthetic data only)">
+          <title>DIP Mortgage</title>
+          <style>
+            body { font-family: sans-serif; max-width: 32rem; margin: 1rem auto; padding: 0 1rem; }
+            label { display: block; margin-top: 0.75rem; }
+            input, button { display: block; width: 100%; min-height: 44px; margin-top: 0.25rem; font-size: 1rem; box-sizing: border-box; }
+            button { margin-top: 1rem; }
+          </style>
+        </head>
         <body>
           <h1>Mortgage Decision-in-Principle</h1>
           <form id="dip-form">
-            <input id="applicant-annual-income" data-testid="applicant-annual-income" placeholder="Annual Income" />
-            <input id="monthly-commitments" data-testid="monthly-commitments" placeholder="Monthly Commitments" />
-            <input id="requested-loan-amount" data-testid="requested-loan-amount" placeholder="Loan Amount" />
+            <label for="applicant-annual-income">Annual income (£)</label>
+            <input id="applicant-annual-income" data-testid="applicant-annual-income" inputmode="numeric" placeholder="Annual Income" />
+            <label for="monthly-commitments">Monthly commitments (£)</label>
+            <input id="monthly-commitments" data-testid="monthly-commitments" inputmode="numeric" placeholder="Monthly Commitments" />
+            <label for="requested-loan-amount">Loan amount (£)</label>
+            <input id="requested-loan-amount" data-testid="requested-loan-amount" inputmode="numeric" placeholder="Loan Amount" />
             <button id="get-decision" data-testid="get-decision" type="button">Get Decision</button>
           </form>
           <div id="decision-badge" data-testid="decision-outcome" style="display:none;">Accepted</div>
